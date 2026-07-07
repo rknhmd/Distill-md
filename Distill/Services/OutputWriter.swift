@@ -1,0 +1,53 @@
+//
+//  OutputWriter.swift
+//  Distill
+//
+//  Decides where a converted file goes and writes it there — without
+//  ever overwriting anything that already exists.
+//
+
+import Foundation
+
+@MainActor
+enum OutputWriter {
+
+    /// Writes `markdown` to the destination chosen in Settings and returns
+    /// the URL it landed at. May show a one-time "Grant Access" panel when
+    /// the sandbox doesn't yet allow writing to the destination folder
+    /// (see FolderAccessManager).
+    static func write(_ markdown: String, forSource sourceURL: URL) throws -> URL {
+        let destinationFolder: URL
+        switch AppSettings.outputMode {
+        case .alongsideSource:
+            destinationFolder = sourceURL.deletingLastPathComponent()
+        case .customFolder:
+            guard let custom = FolderAccessManager.shared.customOutputFolderURL() else {
+                throw ConversionError.customOutputFolderNotSet
+            }
+            destinationFolder = custom
+        }
+
+        guard let writableFolder = FolderAccessManager.shared.writableURL(
+            for: destinationFolder,
+            promptIfNeeded: true
+        ) else {
+            throw ConversionError.writePermissionDenied(folderName: destinationFolder.lastPathComponent)
+        }
+
+        let baseName = sourceURL.deletingPathExtension().lastPathComponent
+        let destination = uniqueDestination(in: writableFolder, baseName: baseName)
+        try Data(markdown.utf8).write(to: destination, options: .atomic)
+        return destination
+    }
+
+    /// Never overwrite: try `name.md`, then `name-2.md`, `name-3.md`, …
+    static func uniqueDestination(in folder: URL, baseName: String) -> URL {
+        var candidate = folder.appendingPathComponent(baseName + ".md")
+        var suffix = 2
+        while FileManager.default.fileExists(atPath: candidate.path) {
+            candidate = folder.appendingPathComponent("\(baseName)-\(suffix).md")
+            suffix += 1
+        }
+        return candidate
+    }
+}

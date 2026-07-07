@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		E98B14C12FFCEBF30052826F /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = E98B14C22FFCEBF30052826F /* ZIPFoundation */; };
+		E98B14C32FFCEBF30052826F /* CoreXLSX in Frameworks */ = {isa = PBXBuildFile; productRef = E98B14C42FFCEBF30052826F /* CoreXLSX */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		E98B14AD2FFCEBF30052826F /* Distill.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Distill.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +28,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E98B14C12FFCEBF30052826F /* ZIPFoundation in Frameworks */,
+				E98B14C32FFCEBF30052826F /* CoreXLSX in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +72,8 @@
 			);
 			name = Distill;
 			packageProductDependencies = (
+				E98B14C22FFCEBF30052826F /* ZIPFoundation */,
+				E98B14C42FFCEBF30052826F /* CoreXLSX */,
 			);
 			productName = Distill;
 			productReference = E98B14AD2FFCEBF30052826F /* Distill.app */;
@@ -94,6 +103,10 @@
 			);
 			mainGroup = E98B14A42FFCEBF30052826F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E98B14C52FFCEBF30052826F /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
+				E98B14C62FFCEBF30052826F /* XCRemoteSwiftPackageReference "CoreXLSX" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E98B14AE2FFCEBF30052826F /* Products */;
 			projectDirPath = "";
@@ -253,7 +266,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
+				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -283,7 +296,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
+				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -325,6 +338,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E98B14C52FFCEBF30052826F /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.16;
+			};
+		};
+		E98B14C62FFCEBF30052826F /* XCRemoteSwiftPackageReference "CoreXLSX" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/CoreOffice/CoreXLSX.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.14.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E98B14C22FFCEBF30052826F /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E98B14C52FFCEBF30052826F /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
+		};
+		E98B14C42FFCEBF30052826F /* CoreXLSX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E98B14C62FFCEBF30052826F /* XCRemoteSwiftPackageReference "CoreXLSX" */;
+			productName = CoreXLSX;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = E98B14A52FFCEBF30052826F /* Project object */;
 }
