@@ -16,7 +16,7 @@ enum OutputWriter {
     /// the URL it landed at. May show a one-time "Grant Access" panel when
     /// the sandbox doesn't yet allow writing to the destination folder
     /// (see FolderAccessManager).
-    static func write(_ markdown: String, forSource sourceURL: URL) throws -> URL {
+    static func write(_ markdown: String, assets: [ExtractedAsset] = [], forSource sourceURL: URL) throws -> URL {
         let destinationFolder: URL
         switch AppSettings.outputMode {
         case .alongsideSource:
@@ -37,7 +37,12 @@ enum OutputWriter {
 
         let baseName = sourceURL.deletingPathExtension().lastPathComponent
         let destination = OutputNaming.uniqueDestination(in: writableFolder, baseName: baseName)
-        try Data(markdown.utf8).write(to: destination, options: .atomic)
+        // Assets folder is named after the final .md (suffix included),
+        // so this must run after unique naming.
+        let finalMarkdown = try AssetWriter.materialize(
+            markdown: markdown, assets: assets, besideMarkdownAt: destination
+        )
+        try Data(finalMarkdown.utf8).write(to: destination, options: .atomic)
         return destination
     }
 }

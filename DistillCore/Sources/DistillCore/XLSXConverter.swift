@@ -16,7 +16,7 @@ nonisolated struct XLSXConverter: MarkdownConverting {
     /// export would otherwise produce megabytes of Markdown nobody wants.
     private static let maxRowsPerSheet = 5000
 
-    func convert(fileAt url: URL) throws -> ConversionResult {
+    func convert(fileAt url: URL, options: ConversionOptions) throws -> ConversionResult {
         guard let file = XLSXFile(filepath: url.path) else {
             throw ConversionError.fileUnreadable
         }

@@ -15,7 +15,7 @@ import Foundation
 
 nonisolated struct HTMLConverter: MarkdownConverting {
 
-    func convert(fileAt url: URL) throws -> ConversionResult {
+    func convert(fileAt url: URL, options: ConversionOptions) throws -> ConversionResult {
         let html = try TextFileReader.read(url)
         let markdown = markdown(fromHTML: html)
         guard !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {

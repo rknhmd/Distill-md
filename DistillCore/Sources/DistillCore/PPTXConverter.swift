@@ -20,7 +20,7 @@ import Foundation
 
 nonisolated struct PPTXConverter: MarkdownConverting {
 
-    func convert(fileAt url: URL) throws -> ConversionResult {
+    func convert(fileAt url: URL, options: ConversionOptions) throws -> ConversionResult {
         let archive = try OOXMLArchive(url: url)
 
         let slidePaths = archive
@@ -30,11 +30,30 @@ nonisolated struct PPTXConverter: MarkdownConverting {
             throw ConversionError.noConvertibleContent
         }
 
+        let collector = options.extractImages ? AssetCollector() : nil
+
         var sections: [String] = []
         for path in slidePaths {
             let number = Self.slideNumber(in: path)
-            guard let slideData = archive.dataIfPresent(at: path),
-                  let slide = ShapeTextWalker.parse(slideData) else { continue }
+            guard let slideData = archive.dataIfPresent(at: path) else { continue }
+
+            // Each slide has its own rels file; image targets look like
+            // "../media/image1.png" relative to ppt/slides/.
+            var resolveImage: ((String) -> String?)?
+            if let collector {
+                let relsPath = "ppt/slides/_rels/\(URL(fileURLWithPath: path).lastPathComponent).rels"
+                let targets = archive.dataIfPresent(at: relsPath)
+                    .map { RelationshipsWalker.parseTargets($0, externalOnly: false) } ?? [:]
+                resolveImage = { relId in
+                    guard let target = targets[relId] else { return nil }
+                    let normalized = target.replacingOccurrences(of: "../", with: "ppt/")
+                    guard let data = archive.dataIfPresent(at: normalized), !data.isEmpty else { return nil }
+                    let ext = (normalized as NSString).pathExtension.lowercased()
+                    return collector.register(data: data, preferredExtension: ext.isEmpty ? "bin" : ext)
+                }
+            }
+
+            guard let slide = ShapeTextWalker.parse(slideData, resolveImage: resolveImage) else { continue }
 
             // Speaker notes: PowerPoint, Keynote, and python-pptx all keep
             // notesSlideN.xml aligned with slideN.xml.
@@ -49,7 +68,12 @@ nonisolated struct PPTXConverter: MarkdownConverting {
         guard !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ConversionError.noConvertibleContent
         }
-        return ConversionResult(markdown: markdown + "\n", unitCount: slidePaths.count, unitLabel: "slides")
+        return ConversionResult(
+            markdown: markdown + "\n",
+            unitCount: slidePaths.count,
+            unitLabel: "slides",
+            assets: collector?.assets ?? []
+        )
     }
 
     private static func renderSlide(
@@ -80,6 +104,11 @@ nonisolated struct PPTXConverter: MarkdownConverting {
                 while table.hasSuffix("\n") { table.removeLast() }
                 lines.append(table)
                 previousWasTable = true
+
+            case .image(let assetName):
+                lines.append("")
+                lines.append(AssetCollector.placeholderLink(for: assetName))
+                previousWasTable = true   // same spacing behavior: blank line after
             }
         }
 
@@ -116,6 +145,7 @@ private nonisolated final class ShapeTextWalker: NSObject, XMLParserDelegate {
     enum SlideContent {
         case paragraph(text: String, level: Int)
         case table(rows: [[String]])
+        case image(assetName: String)
     }
 
     struct Result {
@@ -123,14 +153,18 @@ private nonisolated final class ShapeTextWalker: NSObject, XMLParserDelegate {
         var content: [SlideContent] = []
     }
 
-    static func parse(_ data: Data) -> Result? {
+    static func parse(_ data: Data, resolveImage: ((String) -> String?)? = nil) -> Result? {
         let walker = ShapeTextWalker()
+        walker.resolveImage = resolveImage
         let parser = XMLParser(data: data)
         parser.shouldProcessNamespaces = true
         parser.delegate = walker
         guard parser.parse() else { return nil }
         return walker.result
     }
+
+    /// r:embed id → registered asset name; nil when extraction is off.
+    var resolveImage: ((String) -> String?)?
 
     private var result = Result()
 
@@ -191,6 +225,15 @@ private nonisolated final class ShapeTextWalker: NSObject, XMLParserDelegate {
                 return value != "0" && value.lowercased() != "false"
             }
             cellIsMergeContinuation = isSet(hMerge) || isSet(vMerge)
+
+        case "blip":
+            // <a:blip r:embed="rId4"/> inside a p:pic — a slide image, at
+            // this point in document order.
+            if let resolveImage,
+               let relId = attributeDict["r:embed"] ?? attributeDict["embed"],
+               let assetName = resolveImage(relId) {
+                result.content.append(.image(assetName: assetName))
+            }
 
         case "p" where inShape || inTableCell:
             inParagraph = true

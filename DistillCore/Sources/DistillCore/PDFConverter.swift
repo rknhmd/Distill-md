@@ -25,13 +25,18 @@ nonisolated struct PDFConverter: MarkdownConverting {
     private static let renderScale: CGFloat = 2.5
     private static let maxRenderDimension: CGFloat = 4000
 
-    func convert(fileAt url: URL) async throws -> ConversionResult {
+    func convert(fileAt url: URL, options: ConversionOptions) async throws -> ConversionResult {
         guard let document = PDFDocument(url: url) else {
             throw ConversionError.fileUnreadable
         }
         guard !document.isLocked else {
             throw ConversionError.pdfPasswordProtected
         }
+
+        // Image extraction goes through CoreGraphics' PDF object model
+        // (PDFKit doesn't expose XObjects).
+        let collector = options.extractImages ? AssetCollector() : nil
+        let cgDocument = options.extractImages ? CGPDFDocument(url as CFURL) : nil
 
         var pageTexts: [String] = []
         for pageIndex in 0..<document.pageCount {
@@ -45,6 +50,13 @@ nonisolated struct PDFConverter: MarkdownConverting {
                 pageTexts.append(layerText)
                 continue
             }
+            // When aligning images per page, hold the slot even if the
+            // page yields no text below.
+            defer {
+                if collector != nil && pageTexts.count == pageIndex {
+                    pageTexts.append("")
+                }
+            }
 
             // No usable text layer — OCR the rendered page instead.
             let ocrText = try? await Self.recognizeText(on: page)
@@ -55,13 +67,33 @@ nonisolated struct PDFConverter: MarkdownConverting {
             }
         }
 
-        guard !pageTexts.isEmpty else {
+        // Per the brief: page images are appended after each page's text
+        // (exact in-text position isn't recoverable from PDF structure).
+        if let collector, let cgDocument {
+            for pageIndex in 0..<document.pageCount {
+                let links = PDFImageExtraction
+                    .images(inPageAt: pageIndex + 1, of: cgDocument)
+                    .map { collector.register(data: $0.data, preferredExtension: $0.fileExtension) }
+                    .map { AssetCollector.placeholderLink(for: $0) }
+                guard !links.isEmpty else { continue }
+                let block = links.joined(separator: "\n\n")
+                if pageIndex < pageTexts.count {
+                    pageTexts[pageIndex] += "\n\n" + block
+                } else {
+                    pageTexts.append(block)
+                }
+            }
+        }
+
+        let nonEmptyPages = pageTexts.filter { !$0.isEmpty }
+        guard !nonEmptyPages.isEmpty else {
             throw ConversionError.pdfHasNoTextLayer
         }
         return ConversionResult(
-            markdown: pageTexts.joined(separator: "\n\n") + "\n",
+            markdown: nonEmptyPages.joined(separator: "\n\n") + "\n",
             unitCount: document.pageCount,
-            unitLabel: "pages"
+            unitLabel: "pages",
+            assets: collector?.assets ?? []
         )
     }
 

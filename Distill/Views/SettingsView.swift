@@ -23,6 +23,9 @@ struct SettingsView: View {
     @AppStorage(AppSettings.includeFrontMatterKey)
     private var includeFrontMatter = false
 
+    @AppStorage(AppSettings.extractImagesKey)
+    private var extractImages = false
+
     @AppStorage(AppSettings.watchFolderEnabledKey)
     private var watchFolderEnabled = false
 
@@ -57,6 +60,11 @@ struct SettingsView: View {
 
                 Toggle("Include metadata header", isOn: $includeFrontMatter)
                 Text("Prepends YAML front matter (source, date, format, pages, tokens) to converted files. Markdown inputs that already have front matter keep their own.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Toggle("Extract embedded images", isOn: $extractImages)
+                Text("Saves images from Word, PowerPoint, and PDF files into a “name-assets” folder next to the Markdown, linked in place. Identical images are stored once.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

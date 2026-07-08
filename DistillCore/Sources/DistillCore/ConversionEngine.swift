@@ -32,13 +32,17 @@ public nonisolated enum ConversionEngine {
     /// a background thread — so the UI keeps rendering while a large PDF
     /// is being chewed through. The caller just `await`s the result.
     @concurrent
-    public static func convert(fileAt url: URL, type: FileType) async throws -> ConversionResult {
+    public static func convert(
+        fileAt url: URL,
+        type: FileType,
+        options: ConversionOptions = ConversionOptions()
+    ) async throws -> ConversionResult {
         // URLs from the open panel need their security scope activated
         // before we can read; drag-and-drop URLs usually arrive already
         // readable (start returns false then, which is harmless).
         let didStart = url.startAccessingSecurityScopedResource()
         defer { if didStart { url.stopAccessingSecurityScopedResource() } }
 
-        return try await converter(for: type).convert(fileAt: url)
+        return try await converter(for: type).convert(fileAt: url, options: options)
     }
 }

@@ -92,6 +92,10 @@ private nonisolated let distillTools: [Tool] = [
                     "type": .string("boolean"),
                     "description": .string("Prepend a YAML metadata header (default false)"),
                 ]),
+                "extract_images": .object([
+                    "type": .string("boolean"),
+                    "description": .string("Save embedded images into <name>-assets/ next to the .md (default false)"),
+                ]),
             ]),
             "required": .array([.string("path")]),
         ])
@@ -116,7 +120,7 @@ private nonisolated func handleToolCall(_ params: CallTool.Parameters) async -> 
         }
         let wantsFrontMatter = params.arguments?["front_matter"]?.boolValue ?? false
         do {
-            let (markdown, _) = try await convertDocument(path: path, frontMatter: wantsFrontMatter)
+            let (markdown, _, _) = try await convertDocument(path: path, frontMatter: wantsFrontMatter)
             return .init(content: [.text(markdown)], isError: false)
         } catch {
             return .init(content: [.text(errorText(error, path: path))], isError: true)
@@ -127,9 +131,12 @@ private nonisolated func handleToolCall(_ params: CallTool.Parameters) async -> 
             return .init(content: [.text("Missing required argument: path")], isError: true)
         }
         let wantsFrontMatter = params.arguments?["front_matter"]?.boolValue ?? false
+        let wantsImages = params.arguments?["extract_images"]?.boolValue ?? false
         let outputDir = params.arguments?["output_dir"]?.stringValue
         do {
-            let (markdown, sourceURL) = try await convertDocument(path: path, frontMatter: wantsFrontMatter)
+            let (markdown, sourceURL, conversionResult) = try await convertDocument(
+                path: path, frontMatter: wantsFrontMatter, extractImages: wantsImages
+            )
             let folder = outputDir.map { URL(fileURLWithPath: $0, isDirectory: true) }
                 ?? sourceURL.deletingLastPathComponent()
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -137,7 +144,10 @@ private nonisolated func handleToolCall(_ params: CallTool.Parameters) async -> 
                 in: folder,
                 baseName: sourceURL.deletingPathExtension().lastPathComponent
             )
-            try Data(markdown.utf8).write(to: destination, options: .atomic)
+            let finalMarkdown = try AssetWriter.materialize(
+                markdown: markdown, assets: conversionResult.assets, besideMarkdownAt: destination
+            )
+            try Data(finalMarkdown.utf8).write(to: destination, options: .atomic)
             return .init(content: [.text(destination.path)], isError: false)
         } catch {
             return .init(content: [.text(errorText(error, path: path))], isError: true)
@@ -156,8 +166,9 @@ private nonisolated func handleToolCall(_ params: CallTool.Parameters) async -> 
 
 private nonisolated func convertDocument(
     path: String,
-    frontMatter: Bool
-) async throws -> (markdown: String, sourceURL: URL) {
+    frontMatter: Bool,
+    extractImages: Bool = false
+) async throws -> (markdown: String, sourceURL: URL, result: ConversionResult) {
     let url = URL(fileURLWithPath: path)
     guard FileManager.default.fileExists(atPath: url.path) else {
         throw ConversionError.fileUnreadable
@@ -166,7 +177,9 @@ private nonisolated func convertDocument(
         throw ConversionError.unsupportedType
     }
 
-    let result = try await ConversionEngine.convert(fileAt: url, type: type)
+    let result = try await ConversionEngine.convert(
+        fileAt: url, type: type, options: ConversionOptions(extractImages: extractImages)
+    )
     var markdown = result.markdown
     if frontMatter, !FrontMatter.contentAlreadyHasFrontMatter(markdown, type: type) {
         markdown = FrontMatter.header(
@@ -176,7 +189,7 @@ private nonisolated func convertDocument(
             tokenEstimate: TokenEstimator.estimate(markdown)
         ) + markdown
     }
-    return (markdown, url)
+    return (markdown, url, result)
 }
 
 private nonisolated func errorText(_ error: any Error, path: String) -> String {

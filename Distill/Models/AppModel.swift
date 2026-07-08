@@ -176,7 +176,8 @@ final class AppModel {
             let sourceURL = files[index].sourceURL
 
             do {
-                let result = try await ConversionEngine.convert(fileAt: sourceURL, type: type)
+                let options = ConversionOptions(extractImages: AppSettings.extractImages)
+                let result = try await ConversionEngine.convert(fileAt: sourceURL, type: type, options: options)
 
                 // Token estimate covers the *content*; the optional front
                 // matter below quotes that number, so order matters.
@@ -193,7 +194,7 @@ final class AppModel {
                     ) + markdown
                 }
 
-                let outputURL = try OutputWriter.write(markdown, forSource: sourceURL)
+                let outputURL = try OutputWriter.write(markdown, assets: result.assets, forSource: sourceURL)
                 if let i = files.firstIndex(where: { $0.id == id }) {
                     files[i].markdown = markdown
                     files[i].tokenEstimate = tokens

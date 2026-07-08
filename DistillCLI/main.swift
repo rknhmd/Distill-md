@@ -47,6 +47,8 @@ nonisolated func printUsage() {
     CONVERT OPTIONS:
       --output-dir <dir>   Write .md files into <dir> instead of next to sources.
       --front-matter       Prepend the YAML metadata header.
+      --extract-images     Save embedded images into <name>-assets/ next to
+                           the .md, linked in place (ignored with --stdout).
       --stdout             Print Markdown to stdout instead of writing files.
     """)
 }
@@ -58,6 +60,7 @@ func runConvert(_ arguments: [String]) async -> Int32 {
     var inputs: [URL] = []
     var outputDir: URL?
     var wantsFrontMatter = false
+    var wantsImages = false
     var toStdout = false
 
     var index = 0
@@ -73,6 +76,8 @@ func runConvert(_ arguments: [String]) async -> Int32 {
             outputDir = URL(fileURLWithPath: arguments[index], isDirectory: true)
         case "--front-matter":
             wantsFrontMatter = true
+        case "--extract-images":
+            wantsImages = true
         case "--stdout":
             toStdout = true
         case "--help", "-h":
@@ -110,7 +115,8 @@ func runConvert(_ arguments: [String]) async -> Int32 {
         }
 
         do {
-            let result = try await ConversionEngine.convert(fileAt: url, type: type)
+            let options = ConversionOptions(extractImages: wantsImages && !toStdout)
+            let result = try await ConversionEngine.convert(fileAt: url, type: type, options: options)
             var markdown = result.markdown
 
             if wantsFrontMatter,
@@ -130,6 +136,9 @@ func runConvert(_ arguments: [String]) async -> Int32 {
                 let destination = OutputNaming.uniqueDestination(
                     in: folder,
                     baseName: url.deletingPathExtension().lastPathComponent
+                )
+                markdown = try AssetWriter.materialize(
+                    markdown: markdown, assets: result.assets, besideMarkdownAt: destination
                 )
                 try Data(markdown.utf8).write(to: destination, options: .atomic)
                 printError("\(url.lastPathComponent) → \(destination.path)")

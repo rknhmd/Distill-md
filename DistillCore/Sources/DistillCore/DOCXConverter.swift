@@ -20,7 +20,7 @@ import Foundation
 
 nonisolated struct DOCXConverter: MarkdownConverting {
 
-    func convert(fileAt url: URL) throws -> ConversionResult {
+    func convert(fileAt url: URL, options: ConversionOptions) throws -> ConversionResult {
         let archive = try OOXMLArchive(url: url)
         let documentXML = try archive.data(at: "word/document.xml")
 
@@ -29,11 +29,26 @@ nonisolated struct DOCXConverter: MarkdownConverting {
             .map { NumberingWalker.parse($0) } ?? [:]
 
         // Hyperlink URLs live outside the document, in its relationships
-        // part, keyed by the r:id each w:hyperlink carries.
-        let hyperlinks = archive.dataIfPresent(at: "word/_rels/document.xml.rels")
-            .map { RelationshipsWalker.parseExternalTargets($0) } ?? [:]
+        // part, keyed by the r:id each w:hyperlink carries. Image
+        // relationships resolve through the same file.
+        let relsData = archive.dataIfPresent(at: "word/_rels/document.xml.rels")
+        let hyperlinks = relsData.map { RelationshipsWalker.parseTargets($0, externalOnly: true) } ?? [:]
+        let allTargets = relsData.map { RelationshipsWalker.parseTargets($0, externalOnly: false) } ?? [:]
 
-        let walker = DocumentWalker(numbering: numbering, hyperlinks: hyperlinks)
+        // Image extraction: the walker asks for an asset name per r:embed
+        // id; loading the bytes and dedupe live out here.
+        let collector = options.extractImages ? AssetCollector() : nil
+        let resolveImage: ((String) -> String?)? = collector.map { collector in
+            { relId in
+                guard let target = allTargets[relId],
+                      let data = archive.dataIfPresent(at: "word/" + target),
+                      !data.isEmpty else { return nil }
+                let ext = (target as NSString).pathExtension.lowercased()
+                return collector.register(data: data, preferredExtension: ext.isEmpty ? "bin" : ext)
+            }
+        }
+
+        let walker = DocumentWalker(numbering: numbering, hyperlinks: hyperlinks, resolveImage: resolveImage)
         let parser = XMLParser(data: documentXML)
         parser.shouldProcessNamespaces = true   // match local names, any prefix
         parser.delegate = walker
@@ -45,7 +60,7 @@ nonisolated struct DOCXConverter: MarkdownConverting {
         guard !markdown.isEmpty else {
             throw ConversionError.noConvertibleContent
         }
-        return ConversionResult(markdown: markdown + "\n")
+        return ConversionResult(markdown: markdown + "\n", assets: collector?.assets ?? [])
     }
 }
 
@@ -56,10 +71,19 @@ nonisolated struct DOCXConverter: MarkdownConverting {
 /// class must not be MainActor-isolated.
 private nonisolated final class DocumentWalker: NSObject, XMLParserDelegate {
 
-    init(numbering: [String: [Int: Bool]], hyperlinks: [String: String]) {
+    init(
+        numbering: [String: [Int: Bool]],
+        hyperlinks: [String: String],
+        resolveImage: ((String) -> String?)? = nil
+    ) {
         self.numbering = numbering
         self.hyperlinks = hyperlinks
+        self.resolveImage = resolveImage
     }
+
+    /// r:embed relationship id → registered asset name (nil = extraction
+    /// off, or the image couldn't be loaded).
+    private let resolveImage: ((String) -> String?)?
 
     /// numId → (indent level → is-ordered), from numbering.xml.
     private let numbering: [String: [Int: Bool]]
@@ -157,6 +181,19 @@ private nonisolated final class DocumentWalker: NSObject, XMLParserDelegate {
 
         case "t" where inRun:
             capturingText = true
+
+        case "blip":
+            // <a:blip r:embed="rId7"/> inside a w:drawing — an inline
+            // picture. Emit a placeholder link at this exact position.
+            guard let resolveImage,
+                  let relId = attributeDict["r:embed"] ?? attributeDict["embed"],
+                  let assetName = resolveImage(relId) else { break }
+            let link = AssetCollector.placeholderLink(for: assetName)
+            if inRun {
+                currentRun.text += link
+            } else {
+                currentRuns.append(Run(text: link, bold: false, italic: false))
+            }
         case "br", "cr":
             if inRun { currentRun.text += "\n" }
         case "tab":
@@ -431,13 +468,13 @@ private nonisolated final class NumberingWalker: NSObject, XMLParserDelegate {
 
 // MARK: - word/_rels/document.xml.rels walker
 
-/// Extracts Id → Target for *external* relationships — hyperlink URLs.
-/// (Internal relationships — styles, images, numbering — have relative
-/// targets and no TargetMode; they're not links.)
-private nonisolated final class RelationshipsWalker: NSObject, XMLParserDelegate {
+/// Extracts Id → Target from a .rels part. External targets are
+/// hyperlink URLs; internal ones point at package parts (media, styles).
+nonisolated final class RelationshipsWalker: NSObject, XMLParserDelegate {
 
-    static func parseExternalTargets(_ data: Data) -> [String: String] {
+    static func parseTargets(_ data: Data, externalOnly: Bool) -> [String: String] {
         let walker = RelationshipsWalker()
+        walker.externalOnly = externalOnly
         let parser = XMLParser(data: data)
         parser.shouldProcessNamespaces = true
         parser.delegate = walker
@@ -445,6 +482,7 @@ private nonisolated final class RelationshipsWalker: NSObject, XMLParserDelegate
         return walker.targets
     }
 
+    private var externalOnly = true
     private var targets: [String: String] = [:]
 
     func parser(
@@ -455,9 +493,10 @@ private nonisolated final class RelationshipsWalker: NSObject, XMLParserDelegate
         attributes attributeDict: [String: String] = [:]
     ) {
         guard elementName == "Relationship",
-              attributeDict["TargetMode"] == "External",
               let id = attributeDict["Id"],
               let target = attributeDict["Target"] else { return }
+        let isExternal = attributeDict["TargetMode"] == "External"
+        if externalOnly && !isExternal { return }
         targets[id] = target
     }
 }
