@@ -28,7 +28,12 @@ nonisolated struct DOCXConverter: MarkdownConverting {
         let numbering = archive.dataIfPresent(at: "word/numbering.xml")
             .map { NumberingWalker.parse($0) } ?? [:]
 
-        let walker = DocumentWalker(numbering: numbering)
+        // Hyperlink URLs live outside the document, in its relationships
+        // part, keyed by the r:id each w:hyperlink carries.
+        let hyperlinks = archive.dataIfPresent(at: "word/_rels/document.xml.rels")
+            .map { RelationshipsWalker.parseExternalTargets($0) } ?? [:]
+
+        let walker = DocumentWalker(numbering: numbering, hyperlinks: hyperlinks)
         let parser = XMLParser(data: documentXML)
         parser.shouldProcessNamespaces = true   // match local names, any prefix
         parser.delegate = walker
@@ -51,12 +56,20 @@ nonisolated struct DOCXConverter: MarkdownConverting {
 /// class must not be MainActor-isolated.
 private nonisolated final class DocumentWalker: NSObject, XMLParserDelegate {
 
-    init(numbering: [String: [Int: Bool]]) {
+    init(numbering: [String: [Int: Bool]], hyperlinks: [String: String]) {
         self.numbering = numbering
+        self.hyperlinks = hyperlinks
     }
 
     /// numId → (indent level → is-ordered), from numbering.xml.
     private let numbering: [String: [Int: Bool]]
+
+    /// relationship ID → external URL, from document.xml.rels.
+    private let hyperlinks: [String: String]
+
+    /// While inside <w:hyperlink>: where its runs start in `currentRuns`,
+    /// and the resolved URL (nil for internal anchors — those keep text).
+    private var openHyperlink: (runStartIndex: Int, url: String?)?
 
     /// What a finished block is, which decides the spacing between blocks:
     /// consecutive list items of the *same* kind stay tight (single
@@ -114,6 +127,14 @@ private nonisolated final class DocumentWalker: NSObject, XMLParserDelegate {
             paragraphStyle = nil
             listNumId = nil
             listLevel = 0
+            openHyperlink = nil
+
+        case "hyperlink":
+            let relId = attributeDict["r:id"] ?? attributeDict["id"]
+            openHyperlink = (
+                runStartIndex: currentRuns.count,
+                url: relId.flatMap { hyperlinks[$0] }
+            )
 
         case "pPr":
             inParagraphProperties = true
@@ -171,6 +192,10 @@ private nonisolated final class DocumentWalker: NSObject, XMLParserDelegate {
         case "r":
             if !currentRun.text.isEmpty { currentRuns.append(currentRun) }
             inRun = false
+
+        case "hyperlink":
+            finishHyperlink()
+
         case "p":
             finishParagraph()
 
@@ -194,6 +219,34 @@ private nonisolated final class DocumentWalker: NSObject, XMLParserDelegate {
         if capturingText {
             currentRun.text += string
         }
+    }
+
+    // MARK: Hyperlinks
+
+    /// Collapses the runs accumulated inside a <w:hyperlink> into one
+    /// `[text](url)` run. Internal anchors (no external URL) keep their
+    /// text untouched. Inline formatting stays inside the brackets:
+    /// "[**the docs**](https://…)" renders as a bold link.
+    private func finishHyperlink() {
+        guard let link = openHyperlink else { return }
+        openHyperlink = nil
+        guard let url = link.url, link.runStartIndex <= currentRuns.count else { return }
+
+        let linkRuns = Array(currentRuns[link.runStartIndex...])
+        let text = Self.mergeRuns(linkRuns).trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty else { return }
+
+        currentRuns.removeSubrange(link.runStartIndex...)
+        currentRuns.append(Run(text: "[\(text)](\(Self.sanitizeURL(url)))", bold: false, italic: false))
+    }
+
+    /// Characters that would end the Markdown link early get
+    /// percent-encoded; everything else is passed through as-is (rels
+    /// targets are normally already encoded).
+    private static func sanitizeURL(_ url: String) -> String {
+        url.replacingOccurrences(of: " ", with: "%20")
+            .replacingOccurrences(of: "(", with: "%28")
+            .replacingOccurrences(of: ")", with: "%29")
     }
 
     // MARK: Paragraph assembly
@@ -373,5 +426,38 @@ private nonisolated final class NumberingWalker: NSObject, XMLParserDelegate {
         case "num": currentNumId = nil
         default: break
         }
+    }
+}
+
+// MARK: - word/_rels/document.xml.rels walker
+
+/// Extracts Id → Target for *external* relationships — hyperlink URLs.
+/// (Internal relationships — styles, images, numbering — have relative
+/// targets and no TargetMode; they're not links.)
+private nonisolated final class RelationshipsWalker: NSObject, XMLParserDelegate {
+
+    static func parseExternalTargets(_ data: Data) -> [String: String] {
+        let walker = RelationshipsWalker()
+        let parser = XMLParser(data: data)
+        parser.shouldProcessNamespaces = true
+        parser.delegate = walker
+        guard parser.parse() else { return [:] }
+        return walker.targets
+    }
+
+    private var targets: [String: String] = [:]
+
+    func parser(
+        _ parser: XMLParser,
+        didStartElement elementName: String,
+        namespaceURI: String?,
+        qualifiedName qName: String?,
+        attributes attributeDict: [String: String] = [:]
+    ) {
+        guard elementName == "Relationship",
+              attributeDict["TargetMode"] == "External",
+              let id = attributeDict["Id"],
+              let target = attributeDict["Target"] else { return }
+        targets[id] = target
     }
 }
