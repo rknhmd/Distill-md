@@ -10,6 +10,7 @@
 		E98B14D72FFCEBF30052826F /* DistillCore in Frameworks */ = {isa = PBXBuildFile; productRef = E98B14D62FFCEBF30052826F /* DistillCore */; };
 		E98B14DF2FFCEBF30052826F /* DistillCore in Frameworks */ = {isa = PBXBuildFile; productRef = E98B14DE2FFCEBF30052826F /* DistillCore */; };
 		E98B14E12FFCEBF30052826F /* distill in Embed CLI */ = {isa = PBXBuildFile; fileRef = E98B14D82FFCEBF30052826F /* distill */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		E98B14E92FFCEBF30052826F /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = E98B14E82FFCEBF30052826F /* MCP */; };
 		E98B14CF2FFCEBF30052826F /* DistillQuickAction.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E98B14C72FFCEBF30052826F /* DistillQuickAction.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -26,7 +27,7 @@
 			containerPortal = E98B14A52FFCEBF30052826F /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = E98B14DA2FFCEBF30052826F;
-			remoteInfo = distill;
+			remoteInfo = DistillCLI;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -113,6 +114,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E98B14DF2FFCEBF30052826F /* DistillCore in Frameworks */,
+				E98B14E92FFCEBF30052826F /* MCP in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -191,9 +193,9 @@
 			productReference = E98B14C72FFCEBF30052826F /* DistillQuickAction.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
-		E98B14DA2FFCEBF30052826F /* distill */ = {
+		E98B14DA2FFCEBF30052826F /* DistillCLI */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = E98B14E62FFCEBF30052826F /* Build configuration list for PBXNativeTarget "distill" */;
+			buildConfigurationList = E98B14E62FFCEBF30052826F /* Build configuration list for PBXNativeTarget "DistillCLI" */;
 			buildPhases = (
 				E98B14DB2FFCEBF30052826F /* Sources */,
 				E98B14DC2FFCEBF30052826F /* Frameworks */,
@@ -205,11 +207,12 @@
 			fileSystemSynchronizedGroups = (
 				E98B14D92FFCEBF30052826F /* DistillCLI */,
 			);
-			name = distill;
+			name = DistillCLI;
 			packageProductDependencies = (
 				E98B14DE2FFCEBF30052826F /* DistillCore */,
+				E98B14E82FFCEBF30052826F /* MCP */,
 			);
-			productName = distill;
+			productName = DistillCLI;
 			productReference = E98B14D82FFCEBF30052826F /* distill */;
 			productType = "com.apple.product-type.tool";
 		};
@@ -245,6 +248,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				E98B14D52FFCEBF30052826F /* XCLocalSwiftPackageReference "DistillCore" */,
+				E98B14E72FFCEBF30052826F /* XCRemoteSwiftPackageReference "swift-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E98B14AE2FFCEBF30052826F /* Products */;
@@ -253,7 +257,7 @@
 			targets = (
 				E98B14AC2FFCEBF30052826F /* Distill */,
 				E98B14CA2FFCEBF30052826F /* DistillQuickAction */,
-				E98B14DA2FFCEBF30052826F /* distill */,
+				E98B14DA2FFCEBF30052826F /* DistillCLI */,
 			);
 		};
 /* End PBXProject section */
@@ -552,7 +556,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = distill;
 				SKIP_INSTALL = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -565,7 +569,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = distill;
 				SKIP_INSTALL = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -602,7 +606,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		E98B14E62FFCEBF30052826F /* Build configuration list for PBXNativeTarget "distill" */ = {
+		E98B14E62FFCEBF30052826F /* Build configuration list for PBXNativeTarget "DistillCLI" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E98B14E42FFCEBF30052826F /* Debug */,
@@ -620,6 +624,17 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		E98B14E72FFCEBF30052826F /* XCRemoteSwiftPackageReference "swift-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/modelcontextprotocol/swift-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.11.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		E98B14D62FFCEBF30052826F /* DistillCore */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -628,6 +643,11 @@
 		E98B14DE2FFCEBF30052826F /* DistillCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = DistillCore;
+		};
+		E98B14E82FFCEBF30052826F /* MCP */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E98B14E72FFCEBF30052826F /* XCRemoteSwiftPackageReference "swift-sdk" */;
+			productName = MCP;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

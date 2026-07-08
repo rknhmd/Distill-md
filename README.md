@@ -60,6 +60,48 @@ Everything runs **on-device**. No network calls, no accounts, no telemetry.
    System Settings → General → Login Items & Extensions if it doesn't
    appear under right-click → Quick Actions.
 
+## Use with Claude Desktop / Claude Code (MCP)
+
+Distill ships an MCP server, so AI clients can convert documents
+directly — on-device, no Python environment, no cloud. Add this to your
+client's MCP configuration (`claude_desktop_config.json`, or
+`claude mcp add` for Claude Code):
+
+```json
+{
+  "mcpServers": {
+    "distill": {
+      "command": "/Applications/Distill.app/Contents/Helpers/distill",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Exposed tools: `convert_to_markdown(path, front_matter?)` returns the
+Markdown text; `convert_file(path, output_dir?, front_matter?)` writes
+the .md and returns its path; `list_supported_formats()`.
+
+## Command line
+
+The same binary is a CLI. Put it on your PATH once:
+
+```sh
+/Applications/Distill.app/Contents/Helpers/distill install-cli
+```
+
+Then:
+
+```sh
+distill convert report.pdf slides.pptx        # .md next to each source
+distill convert data.xlsx --output-dir ~/md   # or into a folder
+distill convert report.pdf --stdout           # straight to stdout
+distill convert notes.docx --front-matter     # with the YAML header
+```
+
+The helper is intentionally unsandboxed (it's a CLI you invoke with
+arbitrary paths); the app itself stays fully sandboxed.
+
 ## Build from source
 
 Requirements: Xcode 26 on macOS.
