@@ -46,3 +46,23 @@ public nonisolated enum ConversionEngine {
         return try await converter(for: type).convert(fileAt: url, options: options)
     }
 }
+
+// MARK: - Snippet conversion (clipboard and friends)
+
+public extension ConversionEngine {
+
+    /// HTML string → Markdown, through the same parser .html files use.
+    nonisolated static func markdown(fromHTML html: String) -> String {
+        HTMLConverter().markdown(fromHTML: html)
+    }
+
+    /// RTF bytes → Markdown (textutil staging → the HTML parser).
+    nonisolated static func markdown(fromRTF data: Data) throws -> String {
+        let html = try TextUtil.htmlFromData(data, fileExtension: "rtf")
+        let markdown = HTMLConverter().markdown(fromHTML: html)
+        guard !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw ConversionError.noConvertibleContent
+        }
+        return markdown
+    }
+}

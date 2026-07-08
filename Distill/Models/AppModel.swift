@@ -240,4 +240,38 @@ final class AppModel {
             if statusFlash == message { statusFlash = nil }
         }
     }
+
+    // MARK: Clipboard conversion (⌘⇧V)
+
+    /// Reads HTML or RTF off the pasteboard, converts it to Markdown,
+    /// and puts the Markdown back. Plain text passes through unchanged
+    /// (the status flash says so). v2 brief item 4.
+    func convertClipboard() {
+        let pasteboard = NSPasteboard.general
+
+        func replaceClipboard(with markdown: String, message: String) {
+            pasteboard.clearContents()
+            pasteboard.setString(markdown, forType: .string)
+            flash(message)
+        }
+
+        if let html = pasteboard.string(forType: .html) {
+            let markdown = ConversionEngine.markdown(fromHTML: html)
+            if !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                replaceClipboard(with: markdown, message: "Clipboard converted to Markdown")
+                return
+            }
+        }
+        if let rtfData = pasteboard.data(forType: .rtf) {
+            if let markdown = try? ConversionEngine.markdown(fromRTF: rtfData) {
+                replaceClipboard(with: markdown, message: "Clipboard converted to Markdown")
+                return
+            }
+        }
+        if let plain = pasteboard.string(forType: .string) {
+            replaceClipboard(with: plain, message: "Clipboard was already plain text")
+            return
+        }
+        flash("Nothing convertible on the clipboard")
+    }
 }

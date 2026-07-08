@@ -45,6 +45,12 @@ struct DistillApp: App {
                     .keyboardShortcut(.return, modifiers: .command)
                     .disabled(model.pendingCount == 0 || model.isConverting)
             }
+            // Edit menu: rich clipboard content → Markdown, in place.
+            CommandGroup(after: .pasteboard) {
+                Divider()
+                Button("Convert Clipboard to Markdown") { model.convertClipboard() }
+                    .keyboardShortcut("v", modifiers: [.command, .shift])
+            }
         }
 
         Window("About Distill", id: "about") {

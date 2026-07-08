@@ -19,7 +19,23 @@ import Foundation
 nonisolated struct LegacyDocConverter: MarkdownConverting {
 
     func convert(fileAt url: URL, options: ConversionOptions) throws -> ConversionResult {
-        // 1. Stage a copy in the container's temp directory.
+        let html = try TextUtil.htmlFromFile(at: url)
+        let markdown = HTMLConverter().markdown(fromHTML: html)
+        guard !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw ConversionError.noConvertibleContent
+        }
+        return ConversionResult(markdown: markdown)
+    }
+}
+
+/// Runs macOS's built-in `textutil` (an OS tool, not a bundled
+/// dependency) to turn legacy formats into HTML for our parser.
+/// Inputs are staged into the process's temp directory first: a child
+/// process can always read there, whereas grants on the original file
+/// may not extend to it.
+nonisolated enum TextUtil {
+
+    static func htmlFromFile(at url: URL) throws -> String {
         let stagingDir = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try? FileManager.default.createDirectory(at: stagingDir, withIntermediateDirectories: true)
@@ -31,11 +47,24 @@ nonisolated struct LegacyDocConverter: MarkdownConverting {
         } catch {
             throw ConversionError.fileUnreadable
         }
+        return try htmlFromStagedFile(stagedInput)
+    }
 
-        // 2. textutil → HTML on stdout.
+    static func htmlFromData(_ data: Data, fileExtension: String) throws -> String {
+        let stagingDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try? FileManager.default.createDirectory(at: stagingDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: stagingDir) }
+
+        let stagedInput = stagingDir.appendingPathComponent("clipboard.\(fileExtension)")
+        try data.write(to: stagedInput)
+        return try htmlFromStagedFile(stagedInput)
+    }
+
+    private static func htmlFromStagedFile(_ input: URL) throws -> String {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/textutil")
-        process.arguments = ["-convert", "html", "-stdout", stagedInput.path]
+        process.arguments = ["-convert", "html", "-stdout", input.path]
 
         let stdout = Pipe()
         process.standardOutput = stdout
@@ -57,12 +86,6 @@ nonisolated struct LegacyDocConverter: MarkdownConverting {
         guard let html = String(data: htmlData, encoding: .utf8), !html.isEmpty else {
             throw ConversionError.noConvertibleContent
         }
-
-        // 3. Reuse the HTML→Markdown parser.
-        let markdown = HTMLConverter().markdown(fromHTML: html)
-        guard !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw ConversionError.noConvertibleContent
-        }
-        return ConversionResult(markdown: markdown)
+        return html
     }
 }
