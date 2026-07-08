@@ -4,68 +4,46 @@
 
 <h1 align="center">Distill</h1>
 
-<p align="center"><b>Documents in. AI-ready Markdown out.</b></p>
+<p align="center"><b>Native document infrastructure for AI workflows.</b></p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="Platform: macOS">
   <img src="https://img.shields.io/badge/Swift-native-orange" alt="Swift">
+  <img src="https://img.shields.io/badge/MCP-server-8A2BE2" alt="MCP server">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT">
 </p>
 
-Distill is a small, fast, fully native macOS app that converts documents into
-clean Markdown — the most token-efficient format for feeding context to AI
-models. Drop files in, get tidy `.md` files out, paste them into your LLM of
-choice.
+Distill converts documents into clean, token-efficient Markdown for AI
+consumption — and exposes that ability to everything on your Mac: a
+drag-and-drop app, a Finder Quick Action, a watch folder, a `distill`
+CLI, and an **MCP server** that lets Claude Desktop and Claude Code
+convert files themselves.
 
-Everything runs **on-device**. No network calls, no accounts, no telemetry.
+It is a fully native Swift app — under 15 MB with the MCP server
+included, versus the hundreds of MB a Python or Electron equivalent
+drags in. No interpreter, no cloud: every conversion happens
+on-device, OCR included.
 
-## Features
+## The three ways in
 
-- **11 input formats**, all converted natively (see table below)
-- **OCR fallback** — scanned/image-only PDF pages are recognized on-device
-  with the Vision framework, per page
-- **Token estimates** for every converted file, so you know what a document
-  costs before pasting it into a context window
-- **Rendered or raw preview** of the generated Markdown, with one-click Copy
-- **Finder integration** — right-click → Quick Actions → *Convert to md*,
-  or Open With → Distill
-- **Watch folder** — drop files into a chosen folder and they convert
-  automatically while Distill runs
-- **Auto-copy** the result to the clipboard after single-file conversions
-  (optional)
-- Never overwrites: outputs get `-2`, `-3`, … suffixes
-- Sandboxed, light & dark mode, keyboard-friendly (⌘O add, ⌘⏎ convert)
+**The app.** Drop files anywhere in the window (or right-click →
+Quick Actions → *Convert to md* in Finder). Per-file status, rendered
+Markdown preview, token estimates, watch folder, never overwrites.
 
-## Supported formats
+**The CLI.**
 
-| Format | How it's converted |
-| --- | --- |
-| PDF | PDFKit text extraction; Vision OCR for pages without a text layer |
-| Word (.docx) | OOXML parsed directly — headings, bold/italic, lists, tables |
-| PowerPoint (.pptx) | One section per slide: title, body bullets, speaker notes |
-| Excel (.xlsx) | One Markdown table per sheet (via CoreXLSX) |
-| Legacy Word / RTF (.doc, .rtf) | macOS's built-in `textutil`, then the HTML pipeline |
-| HTML (.html, .htm) | Custom tolerant parser → headings, links, lists, tables, code |
-| CSV / TSV | RFC-4180-style parser → Markdown tables |
-| Text / Markdown (.txt, .md) | Cleanup passthrough (line endings, blank-line runs) |
+```sh
+/Applications/Distill.app/Contents/Helpers/distill install-cli   # once
 
-## Install
+distill convert report.pdf slides.pptx        # .md next to each source
+distill convert data.xlsx --output-dir ~/md   # or into a folder
+distill convert report.pdf --stdout           # straight to stdout
+distill convert deck.pptx --front-matter --extract-images
+```
 
-1. Download `Distill-x.y.z.zip` from the latest
-   [GitHub Release](../../releases), unzip, and move `Distill.app` to
-   `/Applications`.
-2. **First launch:** the app is not yet notarized, so right-click
-   `Distill.app` → **Open** → **Open**. (Only needed once.)
-3. To enable the Finder Quick Action: launch Distill once, then check
-   System Settings → General → Login Items & Extensions if it doesn't
-   appear under right-click → Quick Actions.
-
-## Use with Claude Desktop / Claude Code (MCP)
-
-Distill ships an MCP server, so AI clients can convert documents
-directly — on-device, no Python environment, no cloud. Add this to your
-client's MCP configuration (`claude_desktop_config.json`, or
-`claude mcp add` for Claude Code):
+**MCP (Claude Desktop / Claude Code).** Add to your client's MCP
+config (`claude_desktop_config.json`, or `claude mcp add` for Claude
+Code):
 
 ```json
 {
@@ -78,73 +56,69 @@ client's MCP configuration (`claude_desktop_config.json`, or
 }
 ```
 
-Exposed tools: `convert_to_markdown(path, front_matter?)` returns the
-Markdown text; `convert_file(path, output_dir?, front_matter?)` writes
-the .md and returns its path; `list_supported_formats()`.
+Tools exposed: `convert_to_markdown(path, front_matter?)` returns the
+Markdown directly; `convert_file(path, output_dir?, front_matter?,
+extract_images?)` writes the .md and returns its path;
+`list_supported_formats()`.
 
-## Command line
+## What the conversions get right
 
-The same binary is a CLI. Put it on your PATH once:
+| Format | Fidelity notes |
+| --- | --- |
+| PDF | Text layer via PDFKit; per-page Vision OCR fallback for scans; two-column pages read in correct order (guarded heuristic); embedded images extractable |
+| Word (.docx) | Headings, bold/italic, bullet vs numbered lists, tables, hyperlink URLs, inline images |
+| PowerPoint (.pptx) | One section per slide: title, body bullets, tables (merged cells handled), speaker notes, images |
+| Excel (.xlsx) | Markdown table per sheet; dates/times as ISO 8601 (1900 & 1904 systems); shared/inline strings; formula results |
+| Legacy .doc / .rtf | macOS textutil → the HTML pipeline |
+| HTML | Hand-rolled tolerant parser: headings, links, lists, tables, code |
+| CSV / TSV | RFC-4180 parsing → Markdown tables |
+| TXT / MD | Cleanup passthrough |
 
-```sh
-/Applications/Distill.app/Contents/Helpers/distill install-cli
-```
+Everywhere: token estimates (content-aware: prose ~4 chars/token, code
+~3, CJK ~1.3), optional YAML front matter (source, date, format,
+pages, tokens), duplicate-safe naming, image extraction into
+`<name>-assets/` with content-hash dedupe.
 
-Then:
+Also in the app: **⌘⇧V converts the clipboard** — copy rich text or
+HTML anywhere, get Markdown back.
 
-```sh
-distill convert report.pdf slides.pptx        # .md next to each source
-distill convert data.xlsx --output-dir ~/md   # or into a folder
-distill convert report.pdf --stdout           # straight to stdout
-distill convert notes.docx --front-matter     # with the YAML header
-```
+## Install
 
-The helper is intentionally unsandboxed (it's a CLI you invoke with
-arbitrary paths); the app itself stays fully sandboxed.
+1. Download the zip from the latest [GitHub Release](../../releases),
+   unzip, move `Distill.app` to `/Applications`.
+2. First launch of a downloaded copy: right-click → **Open** → **Open**
+   (the app is not yet notarized).
+3. Optional: `distill install-cli` for the terminal, and the MCP config
+   above for Claude.
 
 ## Build from source
 
-Requirements: Xcode 26 on macOS.
+Xcode 26 on macOS. Clone, `open Distill.xcodeproj`, ⌘R. Package
+dependencies (ZIPFoundation, CoreXLSX, MCP swift-sdk) resolve on first
+build. The conversion engine also builds standalone:
+`cd DistillCore && swift build`.
 
-```sh
-git clone <this-repo>
-cd Distill
-open Distill.xcodeproj   # then ⌘R
-```
+## Architecture
 
-Or from the command line:
-
-```sh
-xcodebuild -scheme Distill -configuration Release build
-```
-
-The two Swift package dependencies (ZIPFoundation, CoreXLSX) resolve
-automatically on first build.
-
-## Architecture notes
-
-- **Two targets**: the app, and a Finder Quick Action extension that hands
-  selected files to the app through Launch Services (which is what
-  transfers sandbox read access — the extension itself converts nothing).
-- **One protocol, eleven converters**: everything implements
-  `MarkdownConverting` (`Converters/`); adding a format is one type plus
-  one line in `ConversionEngine`.
-- **Concurrency**: the UI runs on the main actor; conversion hops to a
-  background thread through a single `@concurrent` entry point. Sync
-  converters satisfy the async protocol requirement for free.
-- **Sandbox**: writing "next to the source file" isn't automatically
-  allowed for a sandboxed app, so `FolderAccessManager` handles the
-  probe → stored security-scoped bookmark → one-time Grant Access panel
-  flow. Grants persist across launches.
-- **No non-native code**: Apple frameworks plus two Swift packages
-  (ZIPFoundation for OOXML unzipping, CoreXLSX for spreadsheets). The
-  DOCX/PPTX/HTML parsers are hand-written Swift.
+- **DistillCore** — a local Swift package holding every converter and
+  the engine facade. Public surface: `ConversionEngine`, `FileType`,
+  `ConversionResult`, plus front-matter/token utilities. The three
+  consumers (app, CLI/MCP helper, regression harness) all speak this
+  API and nothing else.
+- **The app** owns the sandbox story: drag/open grants, security-scoped
+  bookmarks with a one-time Grant Access panel per folder, watch-folder
+  monitoring, SwiftUI throughout.
+- **The helper** (`Contents/Helpers/distill`) is one binary with
+  subcommands — CLI and MCP server. It is deliberately *unsandboxed*:
+  users and MCP clients hand it arbitrary paths, which a sandboxed
+  process couldn't read headlessly. The GUI app stays fully sandboxed.
+- **Concurrency:** UI on the main actor; conversions hop through one
+  `@concurrent` entry point to background threads.
 
 ## Privacy
 
-Distill never touches the network. Files are read, converted in memory,
-and written back to disk — OCR included (Apple's Vision framework runs
-locally).
+No network, no telemetry, no accounts. Vision OCR runs locally. The
+MCP server only ever reads the paths a client passes it.
 
 ## License
 
