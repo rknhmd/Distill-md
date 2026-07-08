@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Merged with Xcode's generated Info.plist (GENERATE_INFOPLIST_FILE
+	     stays on); only keys that can't be expressed as INFOPLIST_KEY_
+	     build settings live here.
+
+	     Declaring document types (role: Viewer, rank: Alternate — we don't
+	     steal double-click ownership) is what makes "Open With → Distill"
+	     appear in Finder, and it's how the Quick Action extension hands
+	     files to the app with sandbox access attached. -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Convertible Document</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.adobe.pdf</string>
+				<string>public.plain-text</string>
+				<string>net.daringfireball.markdown</string>
+				<string>public.html</string>
+				<string>public.comma-separated-values-text</string>
+				<string>public.tab-separated-values-text</string>
+				<string>public.rtf</string>
+				<string>com.microsoft.word.doc</string>
+				<string>org.openxmlformats.wordprocessingml.document</string>
+				<string>org.openxmlformats.presentationml.presentation</string>
+				<string>org.openxmlformats.spreadsheetml.sheet</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

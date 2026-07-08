@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Xcode user state (per-machine, never shared)
+xcuserdata/
+*.xcuserstate
+
+# Build products
+build/
+DerivedData/
+*.xcarchive
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Release artifacts (built locally, attached to GitHub Releases)
+dist/

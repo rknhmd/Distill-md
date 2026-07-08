@@ -50,7 +50,7 @@ struct ContentView: View {
         .toolbar { toolbarContent }
         .fileImporter(
             isPresented: $isImporterPresented,
-            allowedContentTypes: Self.importableTypes,
+            allowedContentTypes: FileType.importableUTTypes,
             allowsMultipleSelection: true
         ) { result in
             if case .success(let urls) = result {
@@ -59,15 +59,6 @@ struct ContentView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { statusBar }
     }
-
-    /// .text covers txt/md/csv already, but listing the specific types
-    /// keeps the open panel's enabled-files behavior predictable. The
-    /// Office types have no UTType constants; they're looked up by
-    /// extension (nil on systems that somehow don't know them — hence
-    /// compactMap).
-    private static let importableTypes: [UTType] = [
-        .pdf, .plainText, .text, .html, .commaSeparatedText, .tabSeparatedText, .rtf,
-    ] + ["docx", "pptx", "xlsx", "doc"].compactMap { UTType(filenameExtension: $0) }
 
     // MARK: - Toolbar
 
@@ -161,6 +152,13 @@ struct ContentView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
+
+            if model.watchFolder.isWatching, let name = model.watchFolder.watchedFolderName {
+                Label("Watching “\(name)”", systemImage: "binoculars")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .help("New files in this folder are converted automatically (Settings → Watch Folder)")
+            }
 
             Spacer()
 

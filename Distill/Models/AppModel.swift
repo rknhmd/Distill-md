@@ -24,6 +24,16 @@ final class AppModel {
     var files: [QueuedFile] = []
     var selectedFileID: QueuedFile.ID?
 
+    /// Watches the folder chosen in Settings and feeds new files in.
+    let watchFolder = WatchFolderService()
+
+    init() {
+        watchFolder.onNewFiles = { [weak self] urls in
+            self?.addFilesAndConvert(urls)
+        }
+        watchFolder.applySettings()
+    }
+
     private(set) var isConverting = false
     /// Progress through the current run, for the status bar.
     private(set) var runCompleted = 0
@@ -81,6 +91,34 @@ final class AppModel {
         }
     }
 
+    /// The File → Add Files… menu command (⌘O). Unlike the toolbar
+    /// button (which uses SwiftUI's fileImporter), menu commands live
+    /// outside the view hierarchy, so this shows an NSOpenPanel directly.
+    func presentOpenPanel() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = true
+        panel.allowedContentTypes = FileType.importableUTTypes
+        panel.prompt = "Add"
+        if panel.runModal() == .OK {
+            addFiles(panel.urls)
+        }
+    }
+
+    /// Files arriving from outside the window — "Open With", the Finder
+    /// Quick Action, or the watch folder — should convert immediately;
+    /// that's what the sender asked for. If a run is already going, the
+    /// new files join it (runQueue drains *all* pending files).
+    func addFilesAndConvert(_ urls: [URL]) {
+        addFiles(urls)
+        if isConverting {
+            runTotal = runCompleted + pendingCount
+        } else {
+            convertAll()
+        }
+    }
+
     // MARK: Queue management
 
     func removeFile(id: QueuedFile.ID) {
@@ -105,28 +143,32 @@ final class AppModel {
     // MARK: Conversion
 
     func convertAll() {
-        guard !isConverting else { return }
-        let pendingIDs = files.filter { $0.status == .pending }.map(\.id)
-        guard !pendingIDs.isEmpty else { return }
+        guard !isConverting, pendingCount > 0 else { return }
 
         isConverting = true
-        runTotal = pendingIDs.count
+        runTotal = pendingCount
         runCompleted = 0
 
         // This Task stays on the MainActor (it inherits the model's
         // isolation); only ConversionEngine.convert hops off it.
         Task {
-            await runQueue(ids: pendingIDs)
+            await runQueue()
         }
     }
 
-    private func runQueue(ids: [QueuedFile.ID]) async {
-        for id in ids {
-            // Re-find the file each iteration — the user may have removed
-            // rows while we were busy converting earlier ones.
-            guard let index = files.firstIndex(where: { $0.id == id }),
-                  files[index].status == .pending,
-                  let type = files[index].type else { continue }
+    private func runQueue() async {
+        var convertedIDs: [QueuedFile.ID] = []
+
+        // A while-loop rather than a snapshot of IDs: files added during
+        // the run (Quick Action, watch folder) get drained by it too.
+        while let index = files.firstIndex(where: { $0.status == .pending }) {
+            let id = files[index].id
+            guard let type = files[index].type else {
+                // Shouldn't happen (typeless files are queued as .failed),
+                // but a plain `continue` here would loop forever.
+                files[index].status = .failed(reason: "Unsupported file type")
+                continue
+            }
 
             files[index].status = .converting
             let sourceURL = files[index].sourceURL
@@ -146,11 +188,12 @@ final class AppModel {
                     files[i].status = .failed(reason: reason)
                 }
             }
+            convertedIDs.append(id)
             runCompleted += 1
         }
         isConverting = false
 
-        autoCopyIfRequested(convertedIDs: ids)
+        autoCopyIfRequested(convertedIDs: convertedIDs)
     }
 
     /// Phase 3: when the run converted exactly one file successfully and

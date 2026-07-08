@@ -54,6 +54,14 @@ nonisolated enum FileType: String, CaseIterable {
         }
     }
 
+    /// Everything the open panel / file importer should accept. `.text`
+    /// covers txt/md/csv already, but listing the specific types keeps
+    /// the panel's enabled-files behavior predictable. The Office types
+    /// have no UTType constants; they're looked up by extension.
+    static let importableUTTypes: [UTType] = [
+        .pdf, .plainText, .text, .html, .commaSeparatedText, .tabSeparatedText, .rtf,
+    ] + ["docx", "pptx", "xlsx", "doc"].compactMap { UTType(filenameExtension: $0) }
+
     /// Detects the format of a file, or returns `nil` if Distill can't
     /// convert it (yet). Detection is primarily by file extension, with a
     /// UTType conformance check as a fallback for unusual extensions.

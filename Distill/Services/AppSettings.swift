@@ -17,6 +17,9 @@ nonisolated enum AppSettings {
     static let customFolderBookmarkKey = "customOutputFolderBookmark"
     static let grantedBookmarksKey = "grantedFolderBookmarks"
     static let autoCopyKey = "autoCopyToClipboard"
+    static let watchFolderEnabledKey = "watchFolderEnabled"
+    static let watchFolderPathKey = "watchFolderPath"
+    static let watchFolderBookmarkKey = "watchFolderBookmark"
 
     /// Where converted files are saved.
     enum OutputMode: String, CaseIterable, Identifiable {
@@ -48,5 +51,15 @@ nonisolated enum AppSettings {
 
     static var autoCopyToClipboard: Bool {
         UserDefaults.standard.bool(forKey: autoCopyKey)
+    }
+
+    static var watchFolderEnabled: Bool {
+        UserDefaults.standard.bool(forKey: watchFolderEnabledKey)
+    }
+
+    static var watchFolderPath: String? {
+        guard let path = UserDefaults.standard.string(forKey: watchFolderPathKey),
+              !path.isEmpty else { return nil }
+        return path
     }
 }

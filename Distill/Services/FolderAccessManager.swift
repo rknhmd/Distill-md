@@ -94,11 +94,41 @@ final class FolderAccessManager {
     /// Resolves the custom output folder from its bookmark, restoring
     /// access after a relaunch. nil if the user never chose one.
     func customOutputFolderURL() -> URL? {
-        guard let path = AppSettings.customFolderPath else { return nil }
+        dedicatedFolderURL(pathKey: AppSettings.customFolderPathKey,
+                           bookmarkKey: AppSettings.customFolderBookmarkKey)
+    }
+
+    // MARK: - The watch folder (Settings)
+
+    /// Folder picker for Settings → watch folder.
+    func chooseWatchFolder() -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Watch"
+        panel.message = "Files added to this folder will be converted to Markdown automatically while Distill is running."
+
+        guard panel.runModal() == .OK, let chosen = panel.url else { return nil }
+        storeBookmark(for: chosen, key: AppSettings.watchFolderBookmarkKey)
+        startAccessing(chosen)
+        return chosen.standardizedFileURL
+    }
+
+    func watchFolderURL() -> URL? {
+        dedicatedFolderURL(pathKey: AppSettings.watchFolderPathKey,
+                           bookmarkKey: AppSettings.watchFolderBookmarkKey)
+    }
+
+    /// Shared resolution for folders stored under their own defaults keys
+    /// (custom output folder, watch folder).
+    private func dedicatedFolderURL(pathKey: String, bookmarkKey: String) -> URL? {
+        guard let path = UserDefaults.standard.string(forKey: pathKey), !path.isEmpty else { return nil }
         if let active = activeFolders[path] { return active }
 
-        guard let data = UserDefaults.standard.data(forKey: AppSettings.customFolderBookmarkKey),
-              let url = resolveBookmark(data, rewriteKeyIfStale: AppSettings.customFolderBookmarkKey)
+        guard let data = UserDefaults.standard.data(forKey: bookmarkKey),
+              let url = resolveBookmark(data, rewriteKeyIfStale: bookmarkKey)
         else { return nil }
         startAccessing(url)
         return url

@@ -9,6 +9,8 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @Environment(AppModel.self) private var model
+
     @AppStorage(AppSettings.outputModeKey)
     private var outputModeRaw = AppSettings.OutputMode.alongsideSource.rawValue
 
@@ -17,6 +19,12 @@ struct SettingsView: View {
 
     @AppStorage(AppSettings.autoCopyKey)
     private var autoCopyToClipboard = false
+
+    @AppStorage(AppSettings.watchFolderEnabledKey)
+    private var watchFolderEnabled = false
+
+    @AppStorage(AppSettings.watchFolderPathKey)
+    private var watchFolderPath = ""
 
     var body: some View {
         Form {
@@ -52,6 +60,34 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            Section("Watch Folder") {
+                Toggle("Automatically convert files added to a folder",
+                       isOn: $watchFolderEnabled)
+                    .onChange(of: watchFolderEnabled) {
+                        model.watchFolder.applySettings()
+                    }
+
+                if watchFolderEnabled {
+                    LabeledContent("Folder:") {
+                        HStack(spacing: 8) {
+                            Text(watchDisplayPath)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .foregroundStyle(watchFolderPath.isEmpty ? .secondary : .primary)
+                            Button("Choose…") {
+                                if let url = FolderAccessManager.shared.chooseWatchFolder() {
+                                    watchFolderPath = url.path
+                                    model.watchFolder.applySettings()
+                                }
+                            }
+                        }
+                    }
+                    Text("Runs while Distill is open. Markdown files in the folder are skipped, so converted output doesn't re-convert.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
         .formStyle(.grouped)
         .frame(width: 480)
@@ -61,6 +97,11 @@ struct SettingsView: View {
     private var displayPath: String {
         if customFolderPath.isEmpty { return "No folder chosen" }
         return (customFolderPath as NSString).abbreviatingWithTildeInPath
+    }
+
+    private var watchDisplayPath: String {
+        if watchFolderPath.isEmpty { return "No folder chosen" }
+        return (watchFolderPath as NSString).abbreviatingWithTildeInPath
     }
 }
 

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Merged with the generated Info.plist. This extension is an
+	     Action extension (com.apple.services); with
+	     NSExtensionServiceAllowsFinderPreviewItem it appears in
+	     Finder's right-click → Quick Actions menu and the Preview
+	     pane. No UI: the principal class handles the request and
+	     completes immediately. -->
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.services</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>$(PRODUCT_MODULE_NAME).ActionRequestHandler</string>
+		<key>NSExtensionAttributes</key>
+		<dict>
+			<key>NSExtensionActivationRule</key>
+			<dict>
+				<key>NSExtensionActivationSupportsFileWithMaxCount</key>
+				<integer>20</integer>
+			</dict>
+			<key>NSExtensionServiceAllowsFinderPreviewItem</key>
+			<true/>
+			<key>NSExtensionServiceFinderPreviewIconName</key>
+			<string>doc.text</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

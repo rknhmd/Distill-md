@@ -29,7 +29,9 @@ There are no test targets yet. The developer also builds/runs in Xcode (⌘R) to
 
 ## Project configuration
 
-- Single target `Distill`, scheme `Distill`, bundle ID `com.rakan.Distill`.
+- Two targets: `Distill` (app) and `DistillQuickAction` (Finder Quick Action .appex under `QuickAction/`, embedded in the app; it hands selected files to the app via `NSWorkspace.open(_:withApplicationAt:)`, which transfers sandbox grants). Building the `Distill` scheme builds both.
+- Bundle IDs `com.rakan.Distill` / `com.rakan.Distill.QuickAction`.
+- The app has a partial `Distill/Info.plist` (document types) merged into the generated Info.plist via `INFOPLIST_FILE` + `GENERATE_INFOPLIST_FILE = YES`; the extension does the same for its `NSExtension` dict.
 - **App Sandbox is enabled** via build settings (no .entitlements file; Info.plist is generated — `GENERATE_INFOPLIST_FILE = YES`). Sandbox-related capabilities are edited in `project.pbxproj` build settings, e.g. `ENABLE_USER_SELECTED_FILES`.
 - Sandbox implications that shape the architecture:
   - Drag-and-drop grants access to the dropped files themselves.
