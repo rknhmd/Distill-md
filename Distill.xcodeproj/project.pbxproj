@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		E98B14D72FFCEBF30052826F /* DistillCore in Frameworks */ = {isa = PBXBuildFile; productRef = E98B14D62FFCEBF30052826F /* DistillCore */; };
+		E98B14DF2FFCEBF30052826F /* DistillCore in Frameworks */ = {isa = PBXBuildFile; productRef = E98B14DE2FFCEBF30052826F /* DistillCore */; };
+		E98B14E12FFCEBF30052826F /* distill in Embed CLI */ = {isa = PBXBuildFile; fileRef = E98B14D82FFCEBF30052826F /* distill */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		E98B14CF2FFCEBF30052826F /* DistillQuickAction.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E98B14C72FFCEBF30052826F /* DistillQuickAction.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -19,9 +21,27 @@
 			remoteGlobalIDString = E98B14CA2FFCEBF30052826F;
 			remoteInfo = DistillQuickAction;
 		};
+		E98B14E22FFCEBF30052826F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E98B14A52FFCEBF30052826F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E98B14DA2FFCEBF30052826F;
+			remoteInfo = distill;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		E98B14E02FFCEBF30052826F /* Embed CLI */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "Contents/Helpers";
+			dstSubfolderSpec = 1;
+			files = (
+				E98B14E12FFCEBF30052826F /* distill in Embed CLI */,
+			);
+			name = "Embed CLI";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E98B14CE2FFCEBF30052826F /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -38,6 +58,7 @@
 /* Begin PBXFileReference section */
 		E98B14AD2FFCEBF30052826F /* Distill.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Distill.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E98B14C72FFCEBF30052826F /* DistillQuickAction.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DistillQuickAction.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		E98B14D82FFCEBF30052826F /* distill */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = distill; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -64,6 +85,11 @@
 			path = QuickAction;
 			sourceTree = "<group>";
 		};
+		E98B14D92FFCEBF30052826F /* DistillCLI */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = DistillCLI;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,6 +108,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E98B14DC2FFCEBF30052826F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E98B14DF2FFCEBF30052826F /* DistillCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -90,6 +124,7 @@
 			children = (
 				E98B14AF2FFCEBF30052826F /* Distill */,
 				E98B14C82FFCEBF30052826F /* QuickAction */,
+				E98B14D92FFCEBF30052826F /* DistillCLI */,
 				E98B14AE2FFCEBF30052826F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -99,6 +134,7 @@
 			children = (
 				E98B14AD2FFCEBF30052826F /* Distill.app */,
 				E98B14C72FFCEBF30052826F /* DistillQuickAction.appex */,
+				E98B14D82FFCEBF30052826F /* distill */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -114,11 +150,13 @@
 				E98B14AA2FFCEBF30052826F /* Frameworks */,
 				E98B14AB2FFCEBF30052826F /* Resources */,
 				E98B14CE2FFCEBF30052826F /* Embed Foundation Extensions */,
+				E98B14E02FFCEBF30052826F /* Embed CLI */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				E98B14D12FFCEBF30052826F /* PBXTargetDependency */,
+				E98B14E32FFCEBF30052826F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				E98B14AF2FFCEBF30052826F /* Distill */,
@@ -153,6 +191,28 @@
 			productReference = E98B14C72FFCEBF30052826F /* DistillQuickAction.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		E98B14DA2FFCEBF30052826F /* distill */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E98B14E62FFCEBF30052826F /* Build configuration list for PBXNativeTarget "distill" */;
+			buildPhases = (
+				E98B14DB2FFCEBF30052826F /* Sources */,
+				E98B14DC2FFCEBF30052826F /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E98B14D92FFCEBF30052826F /* DistillCLI */,
+			);
+			name = distill;
+			packageProductDependencies = (
+				E98B14DE2FFCEBF30052826F /* DistillCore */,
+			);
+			productName = distill;
+			productReference = E98B14D82FFCEBF30052826F /* distill */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -167,6 +227,9 @@
 						CreatedOnToolsVersion = 26.6;
 					};
 					E98B14CA2FFCEBF30052826F = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					E98B14DA2FFCEBF30052826F = {
 						CreatedOnToolsVersion = 26.6;
 					};
 				};
@@ -190,6 +253,7 @@
 			targets = (
 				E98B14AC2FFCEBF30052826F /* Distill */,
 				E98B14CA2FFCEBF30052826F /* DistillQuickAction */,
+				E98B14DA2FFCEBF30052826F /* distill */,
 			);
 		};
 /* End PBXProject section */
@@ -226,6 +290,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E98B14DB2FFCEBF30052826F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -233,6 +304,11 @@
 			isa = PBXTargetDependency;
 			target = E98B14CA2FFCEBF30052826F /* DistillQuickAction */;
 			targetProxy = E98B14D02FFCEBF30052826F /* PBXContainerItemProxy */;
+		};
+		E98B14E32FFCEBF30052826F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E98B14DA2FFCEBF30052826F /* distill */;
+			targetProxy = E98B14E22FFCEBF30052826F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -471,6 +547,33 @@
 		};
 /* End XCBuildConfiguration section */
 
+		E98B14E42FFCEBF30052826F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		E98B14E52FFCEBF30052826F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+
 /* Begin XCConfigurationList section */
 		E98B14A82FFCEBF30052826F /* Build configuration list for PBXProject "Distill" */ = {
 			isa = XCConfigurationList;
@@ -499,6 +602,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		E98B14E62FFCEBF30052826F /* Build configuration list for PBXNativeTarget "distill" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E98B14E42FFCEBF30052826F /* Debug */,
+				E98B14E52FFCEBF30052826F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -510,6 +622,10 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		E98B14D62FFCEBF30052826F /* DistillCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DistillCore;
+		};
+		E98B14DE2FFCEBF30052826F /* DistillCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = DistillCore;
 		};
