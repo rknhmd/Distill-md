@@ -45,7 +45,11 @@ nonisolated struct PDFConverter: MarkdownConverting {
             // autoreleasepool keeps PDFKit's Objective-C allocations from
             // piling up across a large document. (Only around the sync
             // part — `await` can't happen inside it.)
-            let layerText = autoreleasepool { Self.cleanPageText(page.string ?? "") }
+            // Two-column pages read left-column-then-right when the
+            // geometry is unambiguous; otherwise the raw extraction order.
+            let layerText = autoreleasepool {
+                Self.cleanPageText(PDFColumnLayout.reorderedText(for: page) ?? page.string ?? "")
+            }
             if layerText.count >= Self.minimumTextLayerLength {
                 pageTexts.append(layerText)
                 continue
