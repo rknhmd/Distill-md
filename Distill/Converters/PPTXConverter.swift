@@ -3,8 +3,8 @@
 //  Distill
 //
 //  Converts PowerPoint decks: one Markdown section per slide, with the
-//  slide title as a heading, body text as bullets, and speaker notes
-//  appended underneath.
+//  slide title as a heading, body text as bullets, tables as Markdown
+//  tables (in their slide position), and speaker notes appended.
 //
 //  Inside the .pptx ZIP:
 //    ppt/slides/slideN.xml           the slides themselves
@@ -12,6 +12,8 @@
 //  Text lives in shapes (<p:sp>). A shape's placeholder (<p:ph type=…>)
 //  says what it is — title, body, slide number… Paragraphs are <a:p>,
 //  runs <a:r>, text <a:t>, indent level is <a:pPr lvl="…">.
+//  Tables live outside shapes, in <p:graphicFrame> → <a:tbl>, with rows
+//  <a:tr> and cells <a:tc>.
 //
 
 import Foundation
@@ -63,17 +65,30 @@ nonisolated struct PPTXConverter: MarkdownConverting {
             lines.append("## Slide \(number)")
         }
 
-        if !slide.bodyParagraphs.isEmpty {
-            lines.append("")
-            for paragraph in slide.bodyParagraphs {
-                let indent = String(repeating: "  ", count: paragraph.level)
-                lines.append("\(indent)- \(paragraph.text)")
+        var previousWasTable = false
+        for (index, block) in slide.content.enumerated() {
+            switch block {
+            case .paragraph(let text, let level):
+                if index == 0 || previousWasTable { lines.append("") }
+                let indent = String(repeating: "  ", count: level)
+                lines.append("\(indent)- \(text)")
+                previousWasTable = false
+
+            case .table(let rows):
+                lines.append("")
+                var table = CSVConverter.markdownTable(from: rows)
+                while table.hasSuffix("\n") { table.removeLast() }
+                lines.append(table)
+                previousWasTable = true
             }
         }
 
         // Notes come out of the same walker; their "body" is the prose.
         if let notes {
-            let noteLines = notes.bodyParagraphs.map(\.text).filter { !$0.isEmpty }
+            let noteLines: [String] = notes.content.compactMap {
+                if case .paragraph(let text, _) = $0, !text.isEmpty { return text }
+                return nil
+            }
             if !noteLines.isEmpty {
                 lines.append("")
                 lines.append("**Speaker notes:** " + noteLines.joined(separator: " "))
@@ -91,21 +106,21 @@ nonisolated struct PPTXConverter: MarkdownConverting {
     }
 }
 
-// MARK: - Shape text walker
+// MARK: - Shape & table text walker
 
-/// SAX walker shared by slides and notes slides: collects, per shape,
-/// the placeholder type and the paragraphs of text inside it, then sorts
-/// shapes into "title" and "body".
+/// SAX walker shared by slides and notes slides. Collects slide content
+/// in document order: paragraphs from placeholder shapes, and tables
+/// from graphic frames. The title placeholder is pulled out separately.
 private nonisolated final class ShapeTextWalker: NSObject, XMLParserDelegate {
 
-    struct Paragraph {
-        let text: String
-        let level: Int
+    enum SlideContent {
+        case paragraph(text: String, level: Int)
+        case table(rows: [[String]])
     }
 
     struct Result {
         var title: String?
-        var bodyParagraphs: [Paragraph] = []
+        var content: [SlideContent] = []
     }
 
     static func parse(_ data: Data) -> Result? {
@@ -126,13 +141,24 @@ private nonisolated final class ShapeTextWalker: NSObject, XMLParserDelegate {
     // Per-shape state
     private var inShape = false
     private var placeholderType: String?
-    private var shapeParagraphs: [Paragraph] = []
+    private var shapeParagraphs: [(text: String, level: Int)] = []
 
-    // Per-paragraph state
+    // Per-paragraph state (shared by shapes and table cells)
     private var inParagraph = false
     private var paragraphText = ""
     private var paragraphLevel = 0
     private var capturingText = false
+
+    // Table state. Continuation cells of merges (hMerge/vMerge) are
+    // present in the XML as empty markers — they become empty Markdown
+    // cells, which keeps the grid rectangular. (Documented choice:
+    // merged values are NOT repeated.)
+    private var tableDepth = 0
+    private var tableRows: [[String]] = []
+    private var currentRowCells: [String] = []
+    private var inTableCell = false
+    private var currentCellParagraphs: [String] = []
+    private var cellIsMergeContinuation = false
 
     func parser(
         _ parser: XMLParser,
@@ -149,7 +175,24 @@ private nonisolated final class ShapeTextWalker: NSObject, XMLParserDelegate {
         case "ph" where inShape:
             placeholderType = attributeDict["type"]
 
-        case "p" where inShape:
+        case "tbl":
+            tableDepth += 1
+            if tableDepth == 1 { tableRows = [] }
+        case "tr" where tableDepth == 1:
+            currentRowCells = []
+        case "tc" where tableDepth == 1:
+            inTableCell = true
+            currentCellParagraphs = []
+            // hMerge/vMerge mark cells covered by a merge to their left /
+            // above. Present-and-not-false means "this is a continuation".
+            let hMerge = attributeDict["hMerge"], vMerge = attributeDict["vMerge"]
+            func isSet(_ value: String?) -> Bool {
+                guard let value else { return false }
+                return value != "0" && value.lowercased() != "false"
+            }
+            cellIsMergeContinuation = isSet(hMerge) || isSet(vMerge)
+
+        case "p" where inShape || inTableCell:
             inParagraph = true
             paragraphText = ""
             paragraphLevel = 0
@@ -180,15 +223,34 @@ private nonisolated final class ShapeTextWalker: NSObject, XMLParserDelegate {
         switch elementName {
         case "t":
             capturingText = false
+
         case "p" where inParagraph:
             inParagraph = false
             let text = paragraphText.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !text.isEmpty {
-                shapeParagraphs.append(Paragraph(text: text, level: paragraphLevel))
+            if inTableCell {
+                if !text.isEmpty { currentCellParagraphs.append(text) }
+            } else if !text.isEmpty {
+                shapeParagraphs.append((text: text, level: paragraphLevel))
             }
+
+        case "tc" where tableDepth == 1:
+            inTableCell = false
+            currentRowCells.append(
+                cellIsMergeContinuation ? "" : currentCellParagraphs.joined(separator: " ")
+            )
+        case "tr" where tableDepth == 1:
+            if !currentRowCells.isEmpty { tableRows.append(currentRowCells) }
+        case "tbl":
+            if tableDepth == 1, !tableRows.isEmpty {
+                result.content.append(.table(rows: tableRows))
+                tableRows = []
+            }
+            tableDepth = max(0, tableDepth - 1)
+
         case "sp":
             finishShape()
             inShape = false
+
         default:
             break
         }
@@ -209,6 +271,8 @@ private nonisolated final class ShapeTextWalker: NSObject, XMLParserDelegate {
                 return
             }
         }
-        result.bodyParagraphs.append(contentsOf: shapeParagraphs)
+        for paragraph in shapeParagraphs {
+            result.content.append(.paragraph(text: paragraph.text, level: paragraph.level))
+        }
     }
 }
