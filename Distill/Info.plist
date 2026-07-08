@@ -10,6 +10,28 @@
 	     steal double-click ownership) is what makes "Open With → Distill"
 	     appear in Finder, and it's how the Quick Action extension hands
 	     files to the app with sandbox access attached. -->
+	<!-- A classic macOS Service: right-click selected files → "Convert
+	     to md". Runs in the app itself (no extension process); the files
+	     arrive on a pasteboard with sandbox read access attached, same
+	     as drag-and-drop. Registered at launch in AppDelegate. -->
+	<key>NSServices</key>
+	<array>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Convert to md</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>convertToMarkdown</string>
+			<key>NSPortName</key>
+			<string>Distill</string>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>public.data</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>

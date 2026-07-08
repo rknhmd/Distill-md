@@ -16,11 +16,14 @@
 		<string>$(PRODUCT_MODULE_NAME).ActionRequestHandler</string>
 		<key>NSExtensionAttributes</key>
 		<dict>
+			<!-- The predicate-string form, not the dictionary form:
+			     Finder's Quick Actions menu is unreliable about the
+			     NSExtensionActivationSupportsFileWithMaxCount dict on
+			     macOS. This matches any selection where every item is a
+			     file (public.data excludes folders); the handler filters
+			     to convertible types anyway. -->
 			<key>NSExtensionActivationRule</key>
-			<dict>
-				<key>NSExtensionActivationSupportsFileWithMaxCount</key>
-				<integer>20</integer>
-			</dict>
+			<string>SUBQUERY(extensionItems, $extensionItem, SUBQUERY($extensionItem.attachments, $attachment, ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.data").@count &gt;= 1).@count &gt;= 1</string>
 			<key>NSExtensionServiceAllowsFinderPreviewItem</key>
 			<true/>
 			<key>NSExtensionServiceFinderPreviewIconName</key>

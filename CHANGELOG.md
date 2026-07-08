@@ -36,7 +36,7 @@ First release.
 - Light and dark mode.
 
 **System integration**
-- Finder Quick Action: right-click files → "Convert to Markdown".
+- Finder Quick Action: right-click files → "Convert to md".
 - "Open With → Distill" for all supported formats.
 - Watch folder: files added to a chosen folder convert automatically
   while Distill runs (Markdown files skipped to prevent loops).

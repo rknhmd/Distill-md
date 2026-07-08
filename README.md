@@ -27,8 +27,8 @@ Everything runs **on-device**. No network calls, no accounts, no telemetry.
 - **Token estimates** for every converted file, so you know what a document
   costs before pasting it into a context window
 - **Rendered or raw preview** of the generated Markdown, with one-click Copy
-- **Finder integration** — right-click → Quick Actions → *Convert to
-  Markdown*, or Open With → Distill
+- **Finder integration** — right-click → Quick Actions → *Convert to md*,
+  or Open With → Distill
 - **Watch folder** — drop files into a chosen folder and they convert
   automatically while Distill runs
 - **Auto-copy** the result to the clipboard after single-file conversions
