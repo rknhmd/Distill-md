@@ -16,7 +16,7 @@ nonisolated struct XLSXConverter: MarkdownConverting {
     /// export would otherwise produce megabytes of Markdown nobody wants.
     private static let maxRowsPerSheet = 5000
 
-    func convert(fileAt url: URL) throws -> String {
+    func convert(fileAt url: URL) throws -> ConversionResult {
         guard let file = XLSXFile(filepath: url.path) else {
             throw ConversionError.fileUnreadable
         }
@@ -56,12 +56,15 @@ nonisolated struct XLSXConverter: MarkdownConverting {
         }
 
         // A workbook with a single sheet doesn't need its name announced.
+        let markdown: String
         if sheets.count == 1 && totalSheetCount == 1 {
-            return sheets[0].table
+            markdown = sheets[0].table
+        } else {
+            markdown = sheets
+                .map { "## Sheet: \($0.name ?? "Unnamed")\n\n\($0.table)" }
+                .joined(separator: "\n")
         }
-        return sheets
-            .map { "## Sheet: \($0.name ?? "Unnamed")\n\n\($0.table)" }
-            .joined(separator: "\n")
+        return ConversionResult(markdown: markdown, unitCount: totalSheetCount, unitLabel: "sheets")
     }
 
     /// Everything a cell needs to render itself as text.

@@ -17,6 +17,7 @@ nonisolated enum AppSettings {
     static let customFolderBookmarkKey = "customOutputFolderBookmark"
     static let grantedBookmarksKey = "grantedFolderBookmarks"
     static let autoCopyKey = "autoCopyToClipboard"
+    static let includeFrontMatterKey = "includeFrontMatter"
     static let watchFolderEnabledKey = "watchFolderEnabled"
     static let watchFolderPathKey = "watchFolderPath"
     static let watchFolderBookmarkKey = "watchFolderBookmark"
@@ -51,6 +52,10 @@ nonisolated enum AppSettings {
 
     static var autoCopyToClipboard: Bool {
         UserDefaults.standard.bool(forKey: autoCopyKey)
+    }
+
+    static var includeFrontMatter: Bool {
+        UserDefaults.standard.bool(forKey: includeFrontMatterKey)
     }
 
     static var watchFolderEnabled: Bool {

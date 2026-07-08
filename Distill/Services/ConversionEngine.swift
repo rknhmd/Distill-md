@@ -32,7 +32,7 @@ nonisolated enum ConversionEngine {
     /// a background thread — so the UI keeps rendering while a large PDF
     /// is being chewed through. The caller just `await`s the result.
     @concurrent
-    static func convert(fileAt url: URL, type: FileType) async throws -> String {
+    static func convert(fileAt url: URL, type: FileType) async throws -> ConversionResult {
         // URLs from the open panel need their security scope activated
         // before we can read; drag-and-drop URLs usually arrive already
         // readable (start returns false then, which is harmless).

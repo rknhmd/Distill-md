@@ -25,7 +25,7 @@ nonisolated struct PDFConverter: MarkdownConverting {
     private static let renderScale: CGFloat = 2.5
     private static let maxRenderDimension: CGFloat = 4000
 
-    func convert(fileAt url: URL) async throws -> String {
+    func convert(fileAt url: URL) async throws -> ConversionResult {
         guard let document = PDFDocument(url: url) else {
             throw ConversionError.fileUnreadable
         }
@@ -58,7 +58,11 @@ nonisolated struct PDFConverter: MarkdownConverting {
         guard !pageTexts.isEmpty else {
             throw ConversionError.pdfHasNoTextLayer
         }
-        return pageTexts.joined(separator: "\n\n") + "\n"
+        return ConversionResult(
+            markdown: pageTexts.joined(separator: "\n\n") + "\n",
+            unitCount: document.pageCount,
+            unitLabel: "pages"
+        )
     }
 
     // MARK: - OCR fallback

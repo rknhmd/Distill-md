@@ -43,12 +43,11 @@ struct QueuedFile: Identifiable, Equatable {
         ByteCountFormatter.string(fromByteCount: sizeBytes, countStyle: .file)
     }
 
-    /// Rough LLM token estimate for the converted Markdown. English text
-    /// averages ~4 characters per BPE token, so chars ÷ 4 is the standard
-    /// quick estimate. (A real tokenizer is a possible later upgrade.)
-    var tokenEstimate: Int? {
-        markdown.map { $0.count / 4 }
-    }
+    /// Rough LLM token estimate, set at conversion time over the document
+    /// *content* (the optional front-matter header isn't counted). Stored
+    /// rather than computed so the number always describes what the
+    /// estimator saw. See TokenEstimator for the heuristic.
+    var tokenEstimate: Int?
 
     /// "~1.2k tokens" / "~87 tokens" — nil until converted.
     var formattedTokenEstimate: String? {

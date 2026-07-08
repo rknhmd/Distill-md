@@ -15,13 +15,13 @@ import Foundation
 
 nonisolated struct HTMLConverter: MarkdownConverting {
 
-    func convert(fileAt url: URL) throws -> String {
+    func convert(fileAt url: URL) throws -> ConversionResult {
         let html = try TextFileReader.read(url)
         let markdown = markdown(fromHTML: html)
         guard !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ConversionError.noConvertibleContent
         }
-        return markdown
+        return ConversionResult(markdown: markdown)
     }
 
     /// The parser, exposed for other converters: LegacyDocConverter turns

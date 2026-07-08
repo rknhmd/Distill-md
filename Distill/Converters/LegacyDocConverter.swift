@@ -18,7 +18,7 @@ import Foundation
 
 nonisolated struct LegacyDocConverter: MarkdownConverting {
 
-    func convert(fileAt url: URL) throws -> String {
+    func convert(fileAt url: URL) throws -> ConversionResult {
         // 1. Stage a copy in the container's temp directory.
         let stagingDir = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -63,6 +63,6 @@ nonisolated struct LegacyDocConverter: MarkdownConverting {
         guard !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ConversionError.noConvertibleContent
         }
-        return markdown
+        return ConversionResult(markdown: markdown)
     }
 }

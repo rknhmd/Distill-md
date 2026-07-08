@@ -9,7 +9,16 @@
 
 import Foundation
 
-/// Anything that can turn a file on disk into a Markdown string.
+/// What a conversion produces: the Markdown itself, plus the format's
+/// notion of "how many units" (pages, slides, sheets) when it has one —
+/// used by the optional YAML front-matter header.
+nonisolated struct ConversionResult {
+    let markdown: String
+    var unitCount: Int? = nil
+    var unitLabel: String = "pages"
+}
+
+/// Anything that can turn a file on disk into Markdown.
 ///
 /// `nonisolated` + `Sendable`: converters run on a background thread
 /// (see `ConversionEngine`), so they must not touch MainActor state and
@@ -18,10 +27,10 @@ import Foundation
 ///
 /// The requirement is `async` because some converters await other
 /// frameworks (PDF OCR awaits Vision). Purely synchronous converters
-/// just declare `func convert(fileAt:) throws -> String` — a sync
-/// method satisfies an async requirement.
+/// just declare `func convert(fileAt:) throws -> ConversionResult` — a
+/// sync method satisfies an async requirement.
 nonisolated protocol MarkdownConverting: Sendable {
-    func convert(fileAt url: URL) async throws -> String
+    func convert(fileAt url: URL) async throws -> ConversionResult
 }
 
 /// Every way a conversion can fail, with a user-facing message for each.

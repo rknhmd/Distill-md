@@ -15,7 +15,7 @@ nonisolated struct PlainTextConverter: MarkdownConverting {
     /// apply to plain .txt files.
     let isMarkdownInput: Bool
 
-    func convert(fileAt url: URL) throws -> String {
+    func convert(fileAt url: URL) throws -> ConversionResult {
         var text = try TextFileReader.read(url)
 
         // Normalize Windows (\r\n) and old-Mac (\r) line endings to \n.
@@ -55,6 +55,6 @@ nonisolated struct PlainTextConverter: MarkdownConverting {
 
         let result = cleaned.joined(separator: "\n")
         guard !result.isEmpty else { throw ConversionError.emptyFile }
-        return result + "\n"
+        return ConversionResult(markdown: result + "\n")
     }
 }

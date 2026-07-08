@@ -13,11 +13,11 @@ nonisolated struct CSVConverter: MarkdownConverting {
     /// "," for .csv, "\t" for .tsv.
     let delimiter: Character
 
-    func convert(fileAt url: URL) throws -> String {
+    func convert(fileAt url: URL) throws -> ConversionResult {
         let text = try TextFileReader.read(url)
         let rows = Self.parse(text, delimiter: delimiter)
         guard !rows.isEmpty else { throw ConversionError.noConvertibleContent }
-        return Self.markdownTable(from: rows)
+        return ConversionResult(markdown: Self.markdownTable(from: rows))
     }
 
     // MARK: - Parsing

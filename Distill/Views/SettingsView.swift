@@ -20,6 +20,9 @@ struct SettingsView: View {
     @AppStorage(AppSettings.autoCopyKey)
     private var autoCopyToClipboard = false
 
+    @AppStorage(AppSettings.includeFrontMatterKey)
+    private var includeFrontMatter = false
+
     @AppStorage(AppSettings.watchFolderEnabledKey)
     private var watchFolderEnabled = false
 
@@ -51,6 +54,11 @@ struct SettingsView: View {
                         }
                     }
                 }
+
+                Toggle("Include metadata header", isOn: $includeFrontMatter)
+                Text("Prepends YAML front matter (source, date, format, pages, tokens) to converted files. Markdown inputs that already have front matter keep their own.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Clipboard") {

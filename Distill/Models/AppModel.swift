@@ -138,6 +138,7 @@ final class AppModel {
         guard !isConverting, let index = files.firstIndex(where: { $0.id == id }) else { return }
         files[index].status = .pending
         files[index].markdown = nil
+        files[index].tokenEstimate = nil
     }
 
     // MARK: Conversion
@@ -174,10 +175,27 @@ final class AppModel {
             let sourceURL = files[index].sourceURL
 
             do {
-                let markdown = try await ConversionEngine.convert(fileAt: sourceURL, type: type)
+                let result = try await ConversionEngine.convert(fileAt: sourceURL, type: type)
+
+                // Token estimate covers the *content*; the optional front
+                // matter below quotes that number, so order matters.
+                let tokens = TokenEstimator.estimate(result.markdown)
+
+                var markdown = result.markdown
+                if AppSettings.includeFrontMatter,
+                   !FrontMatter.contentAlreadyHasFrontMatter(markdown, type: type) {
+                    markdown = FrontMatter.header(
+                        sourceName: sourceURL.lastPathComponent,
+                        format: type,
+                        result: result,
+                        tokenEstimate: tokens
+                    ) + markdown
+                }
+
                 let outputURL = try OutputWriter.write(markdown, forSource: sourceURL)
                 if let i = files.firstIndex(where: { $0.id == id }) {
                     files[i].markdown = markdown
+                    files[i].tokenEstimate = tokens
                     files[i].status = .done(outputURL: outputURL)
                     // Auto-show the first result if nothing is selected yet.
                     if selectedFileID == nil { selectedFileID = id }

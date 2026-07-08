@@ -20,7 +20,7 @@ import Foundation
 
 nonisolated struct PPTXConverter: MarkdownConverting {
 
-    func convert(fileAt url: URL) throws -> String {
+    func convert(fileAt url: URL) throws -> ConversionResult {
         let archive = try OOXMLArchive(url: url)
 
         let slidePaths = archive
@@ -49,7 +49,7 @@ nonisolated struct PPTXConverter: MarkdownConverting {
         guard !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ConversionError.noConvertibleContent
         }
-        return markdown + "\n"
+        return ConversionResult(markdown: markdown + "\n", unitCount: slidePaths.count, unitLabel: "slides")
     }
 
     private static func renderSlide(

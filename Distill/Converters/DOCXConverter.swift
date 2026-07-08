@@ -20,7 +20,7 @@ import Foundation
 
 nonisolated struct DOCXConverter: MarkdownConverting {
 
-    func convert(fileAt url: URL) throws -> String {
+    func convert(fileAt url: URL) throws -> ConversionResult {
         let archive = try OOXMLArchive(url: url)
         let documentXML = try archive.data(at: "word/document.xml")
 
@@ -45,7 +45,7 @@ nonisolated struct DOCXConverter: MarkdownConverting {
         guard !markdown.isEmpty else {
             throw ConversionError.noConvertibleContent
         }
-        return markdown + "\n"
+        return ConversionResult(markdown: markdown + "\n")
     }
 }
 
