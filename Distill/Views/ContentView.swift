@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import DistillCore
 import UniformTypeIdentifiers
 
 struct ContentView: View {

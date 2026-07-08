@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import DistillCore
 
 /// Where a file currently is in its conversion lifecycle.
 enum ConversionStatus: Equatable {

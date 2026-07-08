@@ -12,7 +12,7 @@ import UniformTypeIdentifiers
 ///
 /// `nonisolated` opts this type out of the project's default MainActor
 /// isolation so the background conversion code can use it freely.
-nonisolated enum FileType: String, CaseIterable {
+public nonisolated enum FileType: String, CaseIterable {
     case pdf
     case plainText
     case markdown
@@ -25,7 +25,7 @@ nonisolated enum FileType: String, CaseIterable {
     case legacyDoc   // .doc / .rtf, converted via macOS's textutil
 
     /// Human-readable name shown in the UI.
-    var displayName: String {
+    public var displayName: String {
         switch self {
         case .pdf: "PDF"
         case .plainText: "Text"
@@ -41,7 +41,7 @@ nonisolated enum FileType: String, CaseIterable {
     }
 
     /// SF Symbol used for the row icon in the file queue.
-    var symbolName: String {
+    public var symbolName: String {
         switch self {
         case .pdf: "doc.richtext"
         case .plainText: "doc.plaintext"
@@ -58,14 +58,14 @@ nonisolated enum FileType: String, CaseIterable {
     /// covers txt/md/csv already, but listing the specific types keeps
     /// the panel's enabled-files behavior predictable. The Office types
     /// have no UTType constants; they're looked up by extension.
-    static let importableUTTypes: [UTType] = [
+    public static let importableUTTypes: [UTType] = [
         .pdf, .plainText, .text, .html, .commaSeparatedText, .tabSeparatedText, .rtf,
     ] + ["docx", "pptx", "xlsx", "doc"].compactMap { UTType(filenameExtension: $0) }
 
     /// Detects the format of a file, or returns `nil` if Distill can't
     /// convert it (yet). Detection is primarily by file extension, with a
     /// UTType conformance check as a fallback for unusual extensions.
-    static func detect(from url: URL) -> FileType? {
+    public static func detect(from url: URL) -> FileType? {
         switch url.pathExtension.lowercased() {
         case "pdf": return .pdf
         case "txt", "text", "log": return .plainText

@@ -12,10 +12,16 @@ import Foundation
 /// What a conversion produces: the Markdown itself, plus the format's
 /// notion of "how many units" (pages, slides, sheets) when it has one —
 /// used by the optional YAML front-matter header.
-nonisolated struct ConversionResult {
-    let markdown: String
-    var unitCount: Int? = nil
-    var unitLabel: String = "pages"
+public nonisolated struct ConversionResult {
+    public let markdown: String
+    public var unitCount: Int?
+    public var unitLabel: String
+
+    public init(markdown: String, unitCount: Int? = nil, unitLabel: String = "pages") {
+        self.markdown = markdown
+        self.unitCount = unitCount
+        self.unitLabel = unitLabel
+    }
 }
 
 /// Anything that can turn a file on disk into Markdown.
@@ -36,7 +42,7 @@ nonisolated protocol MarkdownConverting: Sendable {
 /// Every way a conversion can fail, with a user-facing message for each.
 /// Keeping messages here (not scattered through the UI) means the failure
 /// reason shown in the queue row is always specific and consistent.
-nonisolated enum ConversionError: Error, LocalizedError, Equatable {
+public nonisolated enum ConversionError: Error, LocalizedError, Equatable {
     case unsupportedType
     case fileUnreadable
     case emptyFile
@@ -49,7 +55,7 @@ nonisolated enum ConversionError: Error, LocalizedError, Equatable {
     case customOutputFolderNotSet
     case writePermissionDenied(folderName: String)
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .unsupportedType:
             "Unsupported file type"

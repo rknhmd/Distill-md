@@ -12,6 +12,7 @@
 //
 
 import Foundation
+import DistillCore
 import Observation
 import AppKit
 

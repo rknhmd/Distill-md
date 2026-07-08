@@ -15,9 +15,9 @@
 
 import Foundation
 
-nonisolated enum TokenEstimator {
+public nonisolated enum TokenEstimator {
 
-    static func estimate(_ text: String) -> Int {
+    public static func estimate(_ text: String) -> Int {
         var total = 0.0
         var insideCodeFence = false
 

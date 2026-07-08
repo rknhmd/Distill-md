@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import DistillCore
 
 struct FileRowView: View {
     let file: QueuedFile

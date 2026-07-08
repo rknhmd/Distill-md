@@ -9,7 +9,7 @@
 
 import Foundation
 
-nonisolated enum FrontMatter {
+public nonisolated enum FrontMatter {
 
     /// ---
     /// source: lecture-05.pptx
@@ -18,7 +18,7 @@ nonisolated enum FrontMatter {
     /// slides: 24
     /// tokens: ~3200
     /// ---
-    static func header(
+    public static func header(
         sourceName: String,
         format: FileType,
         result: ConversionResult,
@@ -38,7 +38,7 @@ nonisolated enum FrontMatter {
 
     /// A .md input that already begins with front matter keeps it —
     /// emitting a second header would corrupt the first.
-    static func contentAlreadyHasFrontMatter(_ markdown: String, type: FileType?) -> Bool {
+    public static func contentAlreadyHasFrontMatter(_ markdown: String, type: FileType?) -> Bool {
         type == .markdown && markdown.hasPrefix("---")
     }
 

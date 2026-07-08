@@ -39,7 +39,10 @@ There are no test targets yet. The developer also builds/runs in Xcode (⌘R) to
 
 ## Code organization
 
-Keep sources in `Distill/` grouped as `Models/`, `Views/`, `Converters/`, `Services/` (folder-backed groups; new .swift files added under `Distill/` are picked up via Xcode's file-system-synchronized groups). Converters should share a common protocol so new formats slot in per the phase plan.
+- **`DistillCore/`** — local Swift package holding the conversion engine: all converters, `FileType`, `ConversionEngine`, `FrontMatter`, `TokenEstimator`. It owns the ZIPFoundation + CoreXLSX dependencies and builds standalone (`cd DistillCore && swift build`, Swift 6 language mode). Public surface is deliberately small: `ConversionEngine.convert(fileAt:type:)`, `FileType`, `ConversionResult`, `ConversionError`, `FrontMatter`, `TokenEstimator` — converters themselves are internal. The app, the `distill` CLI/MCP helper, and the regression harness all consume this package.
+- **`Distill/`** — the app: `Models/` (AppModel, QueuedFile), `Views/`, `Services/` (sandbox folder access, output writing, watch folder, settings). Folder-backed synchronized groups: new .swift files on disk are picked up automatically.
+- **`QuickAction/`** — the Finder extension.
+- The regression harness lives in the session scratchpad (`convtest/` SPM package + `samples/` fixtures) and depends on `DistillCore` by path; extend it with fixtures for every converter change.
 
 ## Conversion engine expectations
 
