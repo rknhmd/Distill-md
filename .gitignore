@@ -16,3 +16,6 @@ DerivedData/
 
 # Release artifacts (built locally, attached to GitHub Releases)
 dist/
+
+# Instruments output
+*.trace/

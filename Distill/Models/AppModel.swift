@@ -138,7 +138,6 @@ final class AppModel {
     func requeue(id: QueuedFile.ID) {
         guard !isConverting, let index = files.firstIndex(where: { $0.id == id }) else { return }
         files[index].status = .pending
-        files[index].markdown = nil
         files[index].tokenEstimate = nil
     }
 
@@ -196,7 +195,6 @@ final class AppModel {
 
                 let outputURL = try OutputWriter.write(markdown, assets: result.assets, forSource: sourceURL)
                 if let i = files.firstIndex(where: { $0.id == id }) {
-                    files[i].markdown = markdown
                     files[i].tokenEstimate = tokens
                     files[i].status = .done(outputURL: outputURL)
                     // Auto-show the first result if nothing is selected yet.
@@ -218,18 +216,29 @@ final class AppModel {
 
     /// Phase 3: when the run converted exactly one file successfully and
     /// the Settings toggle is on, put the result straight on the clipboard.
+    /// The model no longer holds the Markdown (v2.0.1 fix 1), so this
+    /// reads the freshly written output file — off the main actor, since
+    /// the file can be large.
     private func autoCopyIfRequested(convertedIDs: [QueuedFile.ID]) {
         guard runTotal == 1,
               AppSettings.autoCopyToClipboard,
               let id = convertedIDs.first,
               let file = files.first(where: { $0.id == id }),
-              case .done = file.status,
-              let markdown = file.markdown else { return }
+              case .done(let outputURL) = file.status else { return }
 
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(markdown, forType: .string)
-        flash("Markdown copied to clipboard")
+        Task {
+            guard let markdown = await Self.readOutputFile(at: outputURL) else { return }
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(markdown, forType: .string)
+            flash("Markdown copied to clipboard")
+        }
+    }
+
+    /// Disk read forced onto the global concurrent executor.
+    @concurrent
+    private nonisolated static func readOutputFile(at url: URL) async -> String? {
+        try? String(contentsOf: url, encoding: .utf8)
     }
 
     private func flash(_ message: String) {

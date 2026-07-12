@@ -42,7 +42,7 @@ There are no test targets yet. The developer also builds/runs in Xcode (⌘R) to
 - **`DistillCore/`** — local Swift package holding the conversion engine: all converters, `FileType`, `ConversionEngine`, `FrontMatter`, `TokenEstimator`. It owns the ZIPFoundation + CoreXLSX dependencies and builds standalone (`cd DistillCore && swift build`, Swift 6 language mode). Public surface is deliberately small: `ConversionEngine.convert(fileAt:type:)`, `FileType`, `ConversionResult`, `ConversionError`, `FrontMatter`, `TokenEstimator` — converters themselves are internal. The app, the `distill` CLI/MCP helper, and the regression harness all consume this package.
 - **`Distill/`** — the app: `Models/` (AppModel, QueuedFile), `Views/`, `Services/` (sandbox folder access, output writing, watch folder, settings). Folder-backed synchronized groups: new .swift files on disk are picked up automatically.
 - **`QuickAction/`** — the Finder extension.
-- The regression harness lives in the session scratchpad (`convtest/` SPM package + `samples/` fixtures) and depends on `DistillCore` by path; extend it with fixtures for every converter change.
+- **`convtest/`** — the regression harness (SPM package, committed): `swift run convtest samples` converts every fixture through DistillCore's public API and exits non-zero on failure. `tools/regen-fixtures.sh` rebuilds all fixtures deterministically. Extend it with fixtures for every converter change. (It lived in the session scratchpad before v2.0.1 and was lost to a session reset — keep it in the repo.) After adding files to DistillCore, `rm -rf convtest/.build` if the harness build can't find new symbols; SPM caches by-path package file lists.
 
 ## Conversion engine expectations
 

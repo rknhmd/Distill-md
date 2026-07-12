@@ -34,9 +34,11 @@ struct QueuedFile: Identifiable, Equatable {
 
     var status: ConversionStatus = .pending
 
-    /// The converted Markdown, kept in memory so the preview pane and the
-    /// Copy button don't need to re-read (and re-authorize) the output file.
-    var markdown: String?
+    // Note: the converted Markdown is deliberately NOT stored here. A big
+    // batch would pin every document's full text in the view tree, which
+    // profiled as severe main-thread hangs on preview and Clear (v2.0.1
+    // fix 1). The output path in `status` is the source of truth; the
+    // preview loads content lazily.
 
     var fileName: String { sourceURL.lastPathComponent }
 

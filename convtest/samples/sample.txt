@@ -1,0 +1,7 @@
+First line with trailing spaces   
+Second line
+
+
+
+After three blanks
+Done

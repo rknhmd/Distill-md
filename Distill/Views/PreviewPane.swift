@@ -3,8 +3,13 @@
 //  Distill
 //
 //  The right-hand side of the window: shows the converted Markdown for
-//  the selected file, with Copy and Open buttons. (Rendered — as opposed
-//  to raw — Markdown preview is a Phase 3 item.)
+//  the selected file, with Copy and Open buttons.
+//
+//  Performance shape (v2.0.1 fix 1): the queue model holds only the
+//  output *path*. Selecting a file loads and parses its Markdown on a
+//  background task, and only the first ~50 KB is displayed unless the
+//  user asks for the full output — big documents previously produced
+//  multi-second main-thread hangs (GraphHost.flushTransactions) here.
 //
 
 import SwiftUI
@@ -14,29 +19,52 @@ struct PreviewPane: View {
     let file: QueuedFile?
 
     @State private var justCopied = false
+    @State private var previewState: PreviewState = .idle
+    @State private var showFullOutput = false
 
     /// "rendered" or "raw" — remembered across launches.
     @AppStorage("previewRenderMode") private var previewMode = "rendered"
 
-    /// Very large documents make SwiftUI's Text layout crawl; the preview
-    /// is capped and the full content still lives in the output file.
-    private static let previewCharacterLimit = 120_000
+    /// Display cap. The full content always stays in the output file and
+    /// is what Copy copies; "Show full output" lifts the cap on demand.
+    private static let previewCharacterCap = 50_000
+
+    /// Everything the pane needs, produced off the main actor —
+    /// `nonisolated` so the @concurrent loader can construct it there.
+    private nonisolated struct LoadedPreview: Sendable {
+        let outputURL: URL
+        let displayText: String
+        let blocks: [MarkdownBlock]
+        let isTruncated: Bool
+    }
+
+    private enum PreviewState {
+        case idle
+        case loading
+        case loaded(LoadedPreview)
+        case unreadable(URL)
+    }
 
     var body: some View {
         if let file {
             switch file.status {
             case .done(let outputURL):
-                if let markdown = file.markdown {
-                    markdownPreview(markdown: markdown, outputURL: outputURL)
-                } else {
-                    // Shouldn't happen (done ⇒ markdown kept), but never
-                    // show a blank pane if it somehow does.
-                    ContentUnavailableView(
-                        "Preview Unavailable",
-                        systemImage: "doc.questionmark",
-                        description: Text("The converted file is at \(outputURL.path)")
-                    )
-                }
+                previewContainer(outputURL: outputURL)
+                    // Reload when the selection or the cap changes. The id
+                    // ties the task to both, and SwiftUI cancels the old
+                    // task automatically on change.
+                    .task(id: TaskKey(url: outputURL, full: showFullOutput)) {
+                        previewState = .loading
+                        let cap = showFullOutput ? nil : Self.previewCharacterCap
+                        if let loaded = await Self.loadPreview(outputURL: outputURL, cap: cap) {
+                            previewState = .loaded(loaded)
+                        } else {
+                            previewState = .unreadable(outputURL)
+                        }
+                    }
+                    .onChange(of: file.id) {
+                        showFullOutput = false
+                    }
             case .converting:
                 ProgressView("Converting…")
             case .pending:
@@ -61,15 +89,69 @@ struct PreviewPane: View {
         }
     }
 
-    // MARK: - The actual preview
+    private nonisolated struct TaskKey: Equatable, Sendable {
+        let url: URL
+        let full: Bool
+    }
 
-    private func markdownPreview(markdown: String, outputURL: URL) -> some View {
+    // MARK: - Background loading
+
+    /// Reads the output file and parses the display portion into blocks,
+    /// entirely off the main actor (@concurrent forces the hop).
+    @concurrent
+    private nonisolated static func loadPreview(outputURL: URL, cap: Int?) async -> LoadedPreview? {
+        guard let full = try? String(contentsOf: outputURL, encoding: .utf8) else { return nil }
+
+        let isTruncated: Bool
+        let displayText: String
+        if let cap, full.count > cap {
+            isTruncated = true
+            displayText = String(full.prefix(cap))
+                + "\n\n… preview capped — use “Show full output” below, or Copy for everything."
+        } else {
+            isTruncated = false
+            displayText = full
+        }
+
+        return LoadedPreview(
+            outputURL: outputURL,
+            displayText: displayText,
+            blocks: MarkdownBlock.parse(displayText),
+            isTruncated: isTruncated
+        )
+    }
+
+    @concurrent
+    private nonisolated static func readFullOutput(at url: URL) async -> String? {
+        try? String(contentsOf: url, encoding: .utf8)
+    }
+
+    // MARK: - Loaded layout
+
+    @ViewBuilder
+    private func previewContainer(outputURL: URL) -> some View {
+        switch previewState {
+        case .idle, .loading:
+            ProgressView("Loading preview…")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        case .unreadable(let url):
+            ContentUnavailableView(
+                "Preview Unavailable",
+                systemImage: "doc.questionmark",
+                description: Text("The converted file couldn't be read back from \(url.path)")
+            )
+        case .loaded(let preview):
+            markdownPreview(preview)
+        }
+    }
+
+    private func markdownPreview(_ preview: LoadedPreview) -> some View {
         VStack(spacing: 0) {
             // Header: where the file went + actions.
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        Text(outputURL.lastPathComponent)
+                        Text(preview.outputURL.lastPathComponent)
                             .font(.headline)
                         if let tokens = file?.formattedTokenEstimate {
                             Text(tokens)
@@ -78,10 +160,10 @@ struct PreviewPane: View {
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(.quaternary, in: Capsule())
-                                .help("Estimated as characters ÷ 4 — the usual quick approximation of LLM (BPE) tokens")
+                                .help("Estimated from content type (~4 chars/token prose, ~3 code, ~1.3 CJK)")
                         }
                     }
-                    Text(outputURL.deletingLastPathComponent().path)
+                    Text(preview.outputURL.deletingLastPathComponent().path)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -99,15 +181,15 @@ struct PreviewPane: View {
                 .help("Rendered Markdown, or the raw text that was saved")
 
                 Button {
-                    copyToClipboard(markdown)
+                    copyFullOutput(preview)
                 } label: {
                     Label(justCopied ? "Copied" : "Copy",
                           systemImage: justCopied ? "checkmark" : "doc.on.doc")
                 }
-                .help("Copy the Markdown to the clipboard")
+                .help("Copy the complete Markdown to the clipboard")
 
                 Button {
-                    NSWorkspace.shared.open(outputURL)
+                    NSWorkspace.shared.open(preview.outputURL)
                 } label: {
                     Label("Open", systemImage: "arrow.up.forward.app")
                 }
@@ -118,10 +200,10 @@ struct PreviewPane: View {
             Divider()
 
             if previewMode == "rendered" {
-                RenderedMarkdownView(markdown: previewText(for: markdown))
+                RenderedMarkdownView(blocks: preview.blocks)
             } else {
                 ScrollView {
-                    Text(previewText(for: markdown))
+                    Text(preview.displayText)
                         .font(.system(.body, design: .monospaced))
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -129,23 +211,37 @@ struct PreviewPane: View {
                 }
                 .background(.background)
             }
+
+            if preview.isTruncated {
+                Divider()
+                HStack {
+                    Label("Large document — preview shows the first \(Self.previewCharacterCap / 1000) K characters",
+                          systemImage: "text.badge.minus")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Show full output") {
+                        showFullOutput = true
+                    }
+                    .controlSize(.small)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(.bar)
+            }
         }
     }
 
-    private func previewText(for markdown: String) -> String {
-        guard markdown.count > Self.previewCharacterLimit else { return markdown }
-        return markdown.prefix(Self.previewCharacterLimit)
-            + "\n\n… preview truncated — the full document is in the saved file."
-    }
-
-    private func copyToClipboard(_ text: String) {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
-
-        // Flash "Copied" on the button for a moment.
-        justCopied = true
+    /// Copy always delivers the *complete* document, not the capped
+    /// preview — read back from disk off the main actor.
+    private func copyFullOutput(_ preview: LoadedPreview) {
         Task {
+            let text = await Self.readFullOutput(at: preview.outputURL) ?? preview.displayText
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(text, forType: .string)
+
+            justCopied = true
             try? await Task.sleep(for: .seconds(1.5))
             justCopied = false
         }

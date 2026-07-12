@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Should never appear</title>
+  <style>body { color: red; }</style>
+  <script>console.log("nor this");</script>
+</head>
+<body>
+  <h1>Quarterly Report &amp; Outlook</h1>
+  <p>Revenue grew <strong>18%</strong> year-over-year — see the <a href="https://example.com/q3">full Q3 numbers</a>.
+     Costs were <em>flat</em>&nbsp;overall.</p>
+
+  <h2>Highlights</h2>
+  <ul>
+    <li>Shipped v2.0 with <code>async/await</code> support</li>
+    <li>Opened offices in:
+      <ol>
+        <li>Berlin</li>
+        <li>Tokyo</li>
+      </ol>
+    </li>
+    <li>Churn below 2&#37;</li>
+  </ul>
+
+  <h2>Numbers</h2>
+  <table>
+    <tr><th>Region</th><th>Revenue</th><th>Change</th></tr>
+    <tr><td>EMEA</td><td>$4.2M</td><td>+22%</td></tr>
+    <tr><td>APAC</td><td>$3.1M</td><td>+9%</td></tr>
+    <tr><td>Missing cell row</td><td>$0.9M</td></tr>
+  </table>
+
+  <blockquote>
+    <p>The best quarter in the company&rsquo;s history.</p>
+  </blockquote>
+
+  <pre><code>let total = regions.map(\.revenue).reduce(0, +)
+print("Total: \(total)")</code></pre>
+
+  <p>Math check: 5 &lt; 6 &amp;&amp; 7 &gt; 2. Unclosed bold next: <b>bold text.
+  <hr>
+  <p>Image: <img src="chart.png" alt="Revenue chart"> and an anchor with no href: <a name="x">plain</a>.</p>
+</body>
+</html>

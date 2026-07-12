@@ -15,9 +15,9 @@
 import SwiftUI
 
 struct RenderedMarkdownView: View {
-    let markdown: String
-
-    @State private var blocks: [MarkdownBlock] = []
+    /// Pre-parsed blocks — parsing happens off the main actor in
+    /// PreviewPane's loader (v2.0.1 fix 1), so this view only lays out.
+    let blocks: [MarkdownBlock]
 
     var body: some View {
         ScrollView {
@@ -31,10 +31,6 @@ struct RenderedMarkdownView: View {
         }
         .textSelection(.enabled)
         .background(.background)
-        // Re-parse only when the document changes, not on every redraw.
-        .task(id: markdown) {
-            blocks = MarkdownBlock.parse(markdown)
-        }
     }
 
     // MARK: Per-block rendering
@@ -133,7 +129,9 @@ struct RenderedMarkdownView: View {
 
 // MARK: - Block model + parser
 
-struct MarkdownBlock: Identifiable {
+/// `nonisolated`: parsing is pure string work and runs on a background
+/// task (the app's default isolation is MainActor, so this opts out).
+nonisolated struct MarkdownBlock: Identifiable {
     enum Kind {
         case heading(level: Int, text: String)
         case paragraph(text: String)
