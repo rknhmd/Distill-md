@@ -34,6 +34,11 @@ struct PreviewPane: View {
     private nonisolated struct LoadedPreview: Sendable {
         let outputURL: URL
         let displayText: String
+        /// The raw view renders these as separate LazyVStack children.
+        /// One monolithic Text made Core Animation lay out a single
+        /// giant glyph layer in one commit — the 2.27 s Severe Hang in
+        /// the v2.0.1 profiling. Chunked, only visible rows lay out.
+        let rawChunks: [String]
         let blocks: [MarkdownBlock]
         let isTruncated: Bool
     }
@@ -116,9 +121,31 @@ struct PreviewPane: View {
         return LoadedPreview(
             outputURL: outputURL,
             displayText: displayText,
+            rawChunks: chunkedAtLineBoundaries(displayText),
             blocks: MarkdownBlock.parse(displayText),
             isTruncated: isTruncated
         )
+    }
+
+    /// Splits text into ~1.5 KB pieces, cutting only at line boundaries
+    /// so the stacked Texts read identically to one Text. Line-based
+    /// (not paragraph-based) on purpose: converted tables are thousands
+    /// of characters with no blank line anywhere.
+    private nonisolated static func chunkedAtLineBoundaries(
+        _ text: String, targetSize: Int = 1500
+    ) -> [String] {
+        var chunks: [String] = []
+        var current = ""
+        for line in text.split(separator: "\n", omittingEmptySubsequences: false) {
+            if !current.isEmpty && current.count + line.count + 1 > targetSize {
+                chunks.append(current)
+                current = String(line)
+            } else {
+                current = current.isEmpty ? String(line) : current + "\n" + line
+            }
+        }
+        if !current.isEmpty { chunks.append(current) }
+        return chunks
     }
 
     @concurrent
@@ -202,12 +229,19 @@ struct PreviewPane: View {
             if previewMode == "rendered" {
                 RenderedMarkdownView(blocks: preview.blocks)
             } else {
+                // Lazy chunks: only visible text lays out (drag-selection
+                // across chunk boundaries doesn't merge — the Copy button
+                // is the whole-document path).
                 ScrollView {
-                    Text(preview.displayText)
-                        .font(.system(.body, design: .monospaced))
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(12)
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(preview.rawChunks.indices, id: \.self) { index in
+                            Text(preview.rawChunks[index])
+                                .font(.system(.body, design: .monospaced))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    .textSelection(.enabled)
+                    .padding(12)
                 }
                 .background(.background)
             }

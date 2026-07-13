@@ -13,6 +13,14 @@ main-thread CPU 34.8 s → 13.5 s; hangs 8 → 3 with cumulative hang time
 22.3 s → 4.3 s; SwiftUI ViewGraph work 22.9 s → 3.6 s; AttributeGraph
 invalidation 9.3 s → 0.1 s; NSView teardown 11.9 s → 1.6 s.
 
+A residual 2.27 s Severe Hang traced to the raw preview laying out one
+giant glyph layer (CA::Transaction::commit). The raw view now renders
+in lazy ~1.5 KB line-boundary chunks, so only visible text lays out:
+a third profiler run on a 300 KB raw preview shows **zero hangs** and
+CA::Transaction::commit down from 9.1 s to 0.2 s. (Trade-off: drag
+selection doesn't span chunk boundaries — Copy remains the
+whole-document path.)
+
 ### Fixed
 - **Preview and Clear no longer hang.** Time Profiler showed ~96% of
   CPU time on the main thread with Severe Hangs when previewing a
