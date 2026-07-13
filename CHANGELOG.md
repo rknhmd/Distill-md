@@ -4,6 +4,30 @@ All notable changes to Distill are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [2.0.1] - 2026-07-13
+
+Performance release — supersedes 2.0.0.
+
+### Fixed
+- **Preview and Clear no longer hang.** Time Profiler showed ~96% of
+  CPU time on the main thread with Severe Hangs when previewing a
+  large converted file or clearing a big batch. The queue no longer
+  keeps every document's Markdown in memory (the output file is the
+  source of truth), the preview loads and parses on a background task,
+  and large outputs display the first 50 KB with a "Show full output"
+  control. Copy and auto-copy always deliver the complete document,
+  read back from disk.
+- CLI: when an unquoted path with spaces splits into several "no such
+  file" errors, the error now includes the exact quoted path to use.
+  (Quoted paths always worked.)
+
+### Verified
+- DOCX hyperlinks: display text is preserved (`[text](url)`); a
+  `[url](url)` result means the document's visible text was the URL
+  itself. Now regression-locked in the harness.
+- The regression harness (fixtures + runner) now lives in the repo
+  under `convtest/` with deterministic regeneration scripts.
+
 ## [2.0.0] - 2026-07-08
 
 The integration release: Distill becomes usable by other tools, not

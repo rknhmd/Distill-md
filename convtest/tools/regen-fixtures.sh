@@ -15,6 +15,8 @@ mkdir -p "$SAMPLES"
 # ---------- plain text / csv / tsv / html ----------
 printf 'First line with trailing spaces   \r\nSecond line\r\n\r\n\r\n\r\nAfter three blanks\r\nDone\r\n' > "$SAMPLES/sample.txt"
 
+printf 'Chapter 25 content line one.\nLine two here.\n' > "$SAMPLES/Ch25 textbook.txt"
+
 printf 'city\tpop\tnote\nParis\t2.1M\t"Left bank\tright bank"\nLyon\t0.5M\tfood capital\n' > "$SAMPLES/sample.tsv"
 
 cat > "$SAMPLES/sample.csv" <<'EOF'

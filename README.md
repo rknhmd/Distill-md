@@ -39,6 +39,7 @@ distill convert report.pdf slides.pptx        # .md next to each source
 distill convert data.xlsx --output-dir ~/md   # or into a folder
 distill convert report.pdf --stdout           # straight to stdout
 distill convert deck.pptx --front-matter --extract-images
+distill convert "Ch25 textbook.pdf"           # quote paths with spaces
 ```
 
 **MCP (Claude Desktop / Claude Code).** Add to your client's MCP

@@ -30,6 +30,7 @@ func run(_ name: String, expectFailure: Bool = false) async {
 
 // Phase 1 formats
 await run("sample.txt")
+await run("Ch25 textbook.txt")   // spaces in filenames (v2.0.1 item 2)
 await run("sample.csv")
 await run("sample.tsv")
 await run("sample.html")
@@ -187,6 +188,25 @@ do {
     print("onecol: sequence preserved")
 } catch {
     failures.append("pdf columns: \(error.localizedDescription)")
+}
+
+
+// ===== v2.0.1 item 3: DOCX hyperlink display text is preserved =====
+print("\n===== docx hyperlink text =====")
+do {
+    let md = try await ConversionEngine.convert(
+        fileAt: samplesDir.appendingPathComponent("feature.docx"), type: .docx
+    ).markdown
+    if md.contains("[**the docs**](https://example.com/docs%28v2%29)") {
+        print("anchor text preserved: [**the docs**](…)")
+    } else {
+        failures.append("docx hyperlink display text dropped or malformed")
+    }
+    if !md.contains("internal section.") || md.contains("[internal section]") {
+        failures.append("docx internal anchor should stay plain text")
+    }
+} catch {
+    failures.append("docx hyperlink check: \(error.localizedDescription)")
 }
 
 print("\n=========================")

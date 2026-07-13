@@ -17,7 +17,7 @@
 import Foundation
 import DistillCore
 
-let toolVersion = "2.0.0"
+let toolVersion = "2.0.1"
 
 // MARK: - Output helpers
 
@@ -102,12 +102,29 @@ func runConvert(_ arguments: [String]) async -> Int32 {
     }
 
     var failureCount: Int32 = 0
+    var missingRun: [String] = []   // consecutive not-found args, see below
+
+    /// Unquoted paths with spaces arrive as several argv entries and fail
+    /// one by one ("Ch25" + "textbook.pdf"). When the pieces joined with
+    /// spaces name a real file, say so instead of leaving two cryptic
+    /// errors. (Quoted paths always worked — this is shell word-splitting.)
+    func flushMissingRunHint() {
+        defer { missingRun = [] }
+        guard missingRun.count >= 2 else { return }
+        let joined = missingRun.joined(separator: " ")
+        if FileManager.default.fileExists(atPath: joined) {
+            printError("hint: these look like one path split by the shell — quote it: \"\(joined)\"")
+        }
+    }
+
     for url in inputs {
         guard FileManager.default.fileExists(atPath: url.path) else {
             printError("\(url.lastPathComponent): no such file")
             failureCount += 1
+            missingRun.append(url.relativePath)
             continue
         }
+        flushMissingRunHint()
         guard let type = FileType.detect(from: url) else {
             printError("\(url.lastPathComponent): unsupported format")
             failureCount += 1
@@ -149,6 +166,7 @@ func runConvert(_ arguments: [String]) async -> Int32 {
             failureCount += 1
         }
     }
+    flushMissingRunHint()
     return failureCount == 0 ? 0 : 2
 }
 
