@@ -15,6 +15,7 @@ struct ContentView: View {
 
     @State private var isDropTargeted = false
     @State private var isImporterPresented = false
+    @State private var isClearConfirmationPresented = false
 
     @AppStorage(AppSettings.outputModeKey)
     private var outputModeRaw = AppSettings.OutputMode.alongsideSource.rawValue
@@ -65,6 +66,27 @@ struct ContentView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        // Clear sits in its own group, away from "+" — an accidental
+        // click can't wipe the session anyway: it asks first.
+        ToolbarItem {
+            Button {
+                isClearConfirmationPresented = true
+            } label: {
+                Label("Clear", systemImage: "trash")
+            }
+            .help("Remove all files from the queue…")
+            .disabled(model.files.isEmpty || model.isConverting)
+            .confirmationDialog(
+                "Remove all \(model.files.count) files from the queue?",
+                isPresented: $isClearConfirmationPresented
+            ) {
+                Button("Clear Queue", role: .destructive) { model.clearQueue() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Converted Markdown files on disk are not affected.")
+            }
+        }
+
         ToolbarItemGroup {
             Button {
                 isImporterPresented = true
@@ -73,18 +95,10 @@ struct ContentView: View {
             }
             .help("Add files to the queue (or just drop them anywhere)")
 
-            Button {
-                model.clearQueue()
-            } label: {
-                Label("Clear", systemImage: "trash")
-            }
-            .help("Remove all files from the queue")
-            .disabled(model.files.isEmpty || model.isConverting)
-
-            Button {
+            // The app's primary action: a labeled prominent button, not
+            // an icon that reads as media playback.
+            Button("Convert All") {
                 model.convertAll()
-            } label: {
-                Label("Convert", systemImage: "play.fill")
             }
             .buttonStyle(.borderedProminent)
             .keyboardShortcut(.return, modifiers: .command)
@@ -118,7 +132,7 @@ struct ContentView: View {
         ContentUnavailableView {
             Label("Drop Files Here", systemImage: "arrow.down.doc")
         } description: {
-            Text("PDF · TXT · MD · CSV · TSV · HTML")
+            Text("PDF · Word · PowerPoint · Excel · CSV · HTML & more")
         } actions: {
             Button("Add Files…") { isImporterPresented = true }
         }
