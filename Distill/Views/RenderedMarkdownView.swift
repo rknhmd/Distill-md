@@ -146,125 +146,15 @@ nonisolated struct MarkdownBlock: Identifiable {
     let id: Int
     let kind: Kind
 
-    /// Blocks beyond this are dropped with a truncation note — keeps a
-    /// pathological document from stalling the preview.
-    private static let maxBlocks = 1500
-
+    /// One-shot convenience over the incremental parser.
     static func parse(_ markdown: String) -> [MarkdownBlock] {
-        var kinds: [Kind] = []
-
-        var paragraphLines: [String] = []
-        var quoteLines: [String] = []
-        var tableLines: [String] = []
-        var codeLines: [String] = []
-        var insideCodeFence = false
-
-        func flushParagraph() {
-            guard !paragraphLines.isEmpty else { return }
-            kinds.append(.paragraph(text: paragraphLines.joined(separator: " ")))
-            paragraphLines = []
-        }
-        func flushQuote() {
-            guard !quoteLines.isEmpty else { return }
-            kinds.append(.blockquote(text: quoteLines.joined(separator: " ")))
-            quoteLines = []
-        }
-        func flushTable() {
-            guard !tableLines.isEmpty else { return }
-            let rows = tableLines.compactMap { parseTableRow($0) }
-            if !rows.isEmpty { kinds.append(.table(rows: rows)) }
-            tableLines = []
-        }
-        func flushAll() {
-            flushParagraph()
-            flushQuote()
-            flushTable()
-        }
-
-        for rawLine in markdown.components(separatedBy: "\n") {
-            let line = rawLine.trimmingCharacters(in: .whitespaces)
-
-            // Code fences swallow everything until they close.
-            if insideCodeFence {
-                if line.hasPrefix("```") {
-                    kinds.append(.codeBlock(code: codeLines.joined(separator: "\n")))
-                    codeLines = []
-                    insideCodeFence = false
-                } else {
-                    codeLines.append(rawLine)
-                }
-                continue
-            }
-            if line.hasPrefix("```") {
-                flushAll()
-                insideCodeFence = true
-                continue
-            }
-
-            if line.isEmpty {
-                flushAll()
-                continue
-            }
-
-            // Table rows: | … | — the |---|---| separator line is skipped.
-            if line.hasPrefix("|") {
-                flushParagraph()
-                flushQuote()
-                let isSeparator = line.allSatisfy { "|-: ".contains($0) }
-                if !isSeparator { tableLines.append(line) }
-                continue
-            } else {
-                flushTable()
-            }
-
-            if line.hasPrefix("#") {
-                let level = line.prefix(while: { $0 == "#" }).count
-                if level <= 6, line.dropFirst(level).hasPrefix(" ") {
-                    flushAll()
-                    kinds.append(.heading(level: level, text: String(line.dropFirst(level + 1))))
-                    continue
-                }
-            }
-
-            if line == "---" || line == "***" || line == "___" {
-                flushAll()
-                kinds.append(.horizontalRule)
-                continue
-            }
-
-            if line.hasPrefix(">") {
-                flushParagraph()
-                quoteLines.append(String(line.dropFirst().trimmingCharacters(in: .whitespaces)))
-                continue
-            } else {
-                flushQuote()
-            }
-
-            // List items — indent comes from the *raw* line's leading spaces.
-            let leadingSpaces = rawLine.prefix(while: { $0 == " " }).count
-            if let item = parseListItem(line, indent: leadingSpaces / 2) {
-                flushAll()
-                kinds.append(item)
-                continue
-            }
-
-            paragraphLines.append(line)
-        }
-
-        // End of document: close anything still open.
-        if insideCodeFence, !codeLines.isEmpty {
-            kinds.append(.codeBlock(code: codeLines.joined(separator: "\n")))
-        }
-        flushAll()
-
-        if kinds.count > maxBlocks {
-            kinds = Array(kinds.prefix(maxBlocks))
-            kinds.append(.paragraph(text: "_…preview truncated — open the file for the rest._"))
-        }
-        return kinds.enumerated().map { MarkdownBlock(id: $0.offset, kind: $0.element) }
+        let parser = MarkdownBlockParser()
+        var blocks = parser.feed(lines: markdown.components(separatedBy: "\n"))
+        blocks += parser.finish()
+        return blocks
     }
 
-    private static func parseListItem(_ line: String, indent: Int) -> Kind? {
+    fileprivate static func parseListItem(_ line: String, indent: Int) -> Kind? {
         // "- text", "* text", "+ text"
         for marker in ["- ", "* ", "+ "] where line.hasPrefix(marker) {
             return .bulletItem(indent: indent, text: String(line.dropFirst(marker.count)))
@@ -279,7 +169,7 @@ nonisolated struct MarkdownBlock: Identifiable {
         return nil
     }
 
-    private static func parseTableRow(_ line: String) -> [String]? {
+    fileprivate static func parseTableRow(_ line: String) -> [String]? {
         // Escaped pipes (\|) are cell *content*, not separators — hide
         // them behind a placeholder before splitting.
         let placeholder = "\u{0001}"
@@ -295,5 +185,164 @@ nonisolated struct MarkdownBlock: Identifiable {
                 .replacingOccurrences(of: "<br>", with: "\n")
         }
         return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+// MARK: - Incremental parser
+
+/// Resumable block parser: feed it lines in batches, collect completed
+/// blocks after each feed, and `finish()` to close whatever is still
+/// open. Constructs that span batch boundaries (code fences, tables,
+/// multi-line paragraphs) carry over correctly because the accumulator
+/// state lives in the instance. This is what lets the preview show its
+/// first blocks in milliseconds while the rest of a large document
+/// keeps parsing in the background.
+nonisolated final class MarkdownBlockParser {
+
+    /// Emitted blocks beyond this become a single truncation note —
+    /// keeps a pathological document from stalling the preview.
+    private static let maxBlocks = 1500
+
+    private var kinds: [MarkdownBlock.Kind] = []
+    private var nextID = 0
+    private var truncated = false
+
+    private var paragraphLines: [String] = []
+    private var quoteLines: [String] = []
+    private var tableLines: [String] = []
+    private var codeLines: [String] = []
+    private var insideCodeFence = false
+
+    /// Parses a batch of lines; returns the blocks *completed* by it.
+    func feed(lines: [String]) -> [MarkdownBlock] {
+        guard !truncated else { return [] }
+        for rawLine in lines {
+            process(rawLine)
+            if nextID + kinds.count >= Self.maxBlocks {
+                truncated = true
+                kinds.append(.paragraph(text: "_…preview truncated — open the file for the rest._"))
+                break
+            }
+        }
+        return drain()
+    }
+
+    /// Closes any still-open construct (unterminated fence, trailing
+    /// paragraph) and returns the final blocks.
+    func finish() -> [MarkdownBlock] {
+        guard !truncated else { return [] }
+        if insideCodeFence, !codeLines.isEmpty {
+            kinds.append(.codeBlock(code: codeLines.joined(separator: "\n")))
+            codeLines = []
+            insideCodeFence = false
+        }
+        flushAll()
+        return drain()
+    }
+
+    private func drain() -> [MarkdownBlock] {
+        let blocks = kinds.map { kind in
+            defer { nextID += 1 }
+            return MarkdownBlock(id: nextID, kind: kind)
+        }
+        kinds = []
+        return blocks
+    }
+
+    // MARK: per-line state machine (same rules as ever)
+
+    private func process(_ rawLine: String) {
+        let line = rawLine.trimmingCharacters(in: .whitespaces)
+
+        // Code fences swallow everything until they close.
+        if insideCodeFence {
+            if line.hasPrefix("```") {
+                kinds.append(.codeBlock(code: codeLines.joined(separator: "\n")))
+                codeLines = []
+                insideCodeFence = false
+            } else {
+                codeLines.append(rawLine)
+            }
+            return
+        }
+        if line.hasPrefix("```") {
+            flushAll()
+            insideCodeFence = true
+            return
+        }
+
+        if line.isEmpty {
+            flushAll()
+            return
+        }
+
+        // Table rows: | … | — the |---|---| separator line is skipped.
+        if line.hasPrefix("|") {
+            flushParagraph()
+            flushQuote()
+            let isSeparator = line.allSatisfy { "|-: ".contains($0) }
+            if !isSeparator { tableLines.append(line) }
+            return
+        } else {
+            flushTable()
+        }
+
+        if line.hasPrefix("#") {
+            let level = line.prefix(while: { $0 == "#" }).count
+            if level <= 6, line.dropFirst(level).hasPrefix(" ") {
+                flushAll()
+                kinds.append(.heading(level: level, text: String(line.dropFirst(level + 1))))
+                return
+            }
+        }
+
+        if line == "---" || line == "***" || line == "___" {
+            flushAll()
+            kinds.append(.horizontalRule)
+            return
+        }
+
+        if line.hasPrefix(">") {
+            flushParagraph()
+            quoteLines.append(String(line.dropFirst().trimmingCharacters(in: .whitespaces)))
+            return
+        } else {
+            flushQuote()
+        }
+
+        // List items — indent comes from the *raw* line's leading spaces.
+        let leadingSpaces = rawLine.prefix(while: { $0 == " " }).count
+        if let item = MarkdownBlock.parseListItem(line, indent: leadingSpaces / 2) {
+            flushAll()
+            kinds.append(item)
+            return
+        }
+
+        paragraphLines.append(line)
+    }
+
+    private func flushParagraph() {
+        guard !paragraphLines.isEmpty else { return }
+        kinds.append(.paragraph(text: paragraphLines.joined(separator: " ")))
+        paragraphLines = []
+    }
+
+    private func flushQuote() {
+        guard !quoteLines.isEmpty else { return }
+        kinds.append(.blockquote(text: quoteLines.joined(separator: " ")))
+        quoteLines = []
+    }
+
+    private func flushTable() {
+        guard !tableLines.isEmpty else { return }
+        let rows = tableLines.compactMap { MarkdownBlock.parseTableRow($0) }
+        if !rows.isEmpty { kinds.append(.table(rows: rows)) }
+        tableLines = []
+    }
+
+    private func flushAll() {
+        flushParagraph()
+        flushQuote()
+        flushTable()
     }
 }

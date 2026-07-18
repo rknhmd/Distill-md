@@ -21,6 +21,14 @@ CA::Transaction::commit down from 9.1 s to 0.2 s. (Trade-off: drag
 selection doesn't span chunk boundaries — Copy remains the
 whole-document path.)
 
+The preview now also *streams*: selecting a file cancels the previous
+file's in-flight parse (stale batches can never reach the UI), the
+first ~25 blocks render from a small first batch while the rest keeps
+parsing in the background, and switching away clears the old tree in
+one cheap transaction. Measured on a huge → small → huge selection
+sequence (PreviewFirstPaint signposts, Instruments): first content in
+**58 ms / 59 ms**, zero hangs.
+
 ### Fixed
 - **Preview and Clear no longer hang.** Time Profiler showed ~96% of
   CPU time on the main thread with Severe Hangs when previewing a

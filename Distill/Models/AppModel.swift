@@ -33,6 +33,39 @@ final class AppModel {
             self?.addFilesAndConvert(urls)
         }
         watchFolder.applySettings()
+
+        // Instrumented-run hook (no effect in normal launches): converts
+        // the given files, then drives the huge → small → huge selection
+        // sequence so preview latency can be profiled headlessly. The
+        // PreviewFirstPaint signposts land in the trace.
+        if let spec = ProcessInfo.processInfo.environment["DISTILL_PREVIEW_TEST"] {
+            let urls = spec.split(separator: ":").map { URL(fileURLWithPath: String($0)) }
+            runPreviewLatencyProbe(urls: urls)
+        }
+    }
+
+    private func runPreviewLatencyProbe(urls: [URL]) {
+        Task {
+            addFilesAndConvert(urls)
+            try? await Task.sleep(for: .milliseconds(300))
+            while isConverting {
+                try? await Task.sleep(for: .milliseconds(200))
+            }
+            try? await Task.sleep(for: .seconds(1))
+
+            let doneIDs = files.compactMap { file -> QueuedFile.ID? in
+                if case .done = file.status { return file.id }
+                return nil
+            }
+            if doneIDs.count >= 2 {
+                for id in [doneIDs[0], doneIDs[1], doneIDs[0]] {
+                    selectedFileID = id
+                    try? await Task.sleep(for: .seconds(1.5))
+                }
+            }
+            try? await Task.sleep(for: .seconds(1))
+            NSApp.terminate(nil)
+        }
     }
 
     private(set) var isConverting = false
