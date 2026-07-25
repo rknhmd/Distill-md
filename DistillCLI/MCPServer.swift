@@ -50,10 +50,11 @@ private nonisolated let distillTools: [Tool] = [
     Tool(
         name: "convert_to_markdown",
         description: """
-        Convert a document (PDF, Word, PowerPoint, Excel, HTML, CSV, and \
-        more) to clean Markdown and return the Markdown text directly. \
-        Runs fully on-device. Use convert_file instead if the result \
-        should be written to disk.
+        Convert a document (PDF, Word, PowerPoint, Excel, HTML, CSV, ZIP \
+        archives, and more) to clean Markdown and return the Markdown \
+        text directly. A ZIP becomes one combined document with a section \
+        per contained file. Runs fully on-device. Use convert_file \
+        instead if the result should be written to disk.
         """,
         inputSchema: .object([
             "type": .string("object"),

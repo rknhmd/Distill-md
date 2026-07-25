@@ -23,6 +23,7 @@ public nonisolated enum ConversionEngine {
         case .pptx: PPTXConverter()
         case .xlsx: XLSXConverter()
         case .legacyDoc: LegacyDocConverter()
+        case .zip: ZipConverter()
         }
     }
 

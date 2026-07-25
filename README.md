@@ -74,6 +74,7 @@ extract_images?)` writes the .md and returns its path;
 | HTML | Hand-rolled tolerant parser: headings, links, lists, tables, code |
 | CSV / TSV | RFC-4180 parsing → Markdown tables |
 | TXT / MD | Cleanup passthrough |
+| ZIP archives | One combined document: every supported file inside, sectioned by path in stable order; skipped entries listed. 500 MB / 1,000-entry caps, zip-slip rejection, no nested-archive recursion |
 
 Everywhere: token estimates (content-aware: prose ~4 chars/token, code
 ~3, CJK ~1.3), optional YAML front matter (source, date, format,

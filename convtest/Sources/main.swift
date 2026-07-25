@@ -49,6 +49,11 @@ await run("sample.doc")
 // OCR
 await run("scanned.pdf")
 
+// Archives
+await run("mixed.zip")
+await run("zipslip.zip", expectFailure: true)
+await run("toomany.zip", expectFailure: true)
+
 // Error paths
 let emptyURL = samplesDir.appendingPathComponent("empty.txt")
 FileManager.default.createFile(atPath: emptyURL.path, contents: Data())
@@ -209,6 +214,39 @@ do {
     failures.append("docx hyperlink check: \(error.localizedDescription)")
 }
 
+// ===== zip combined-document assertions =====
+print("\n===== zip structure =====")
+do {
+    let md = try await ConversionEngine.convert(
+        fileAt: samplesDir.appendingPathComponent("mixed.zip"), type: .zip
+    ).markdown
+    func pos(_ n: String) -> Int {
+        md.range(of: n).map { md.distance(from: md.startIndex, to: $0.lowerBound) } ?? -1
+    }
+    let sections = ["# data/budget.csv", "# docs/note.txt", "# docs/report.html"]
+    var last = -1
+    for s in sections {
+        let p = pos(s)
+        if p < 0 { failures.append("mixed.zip: missing section \(s)") }
+        if p < last { failures.append("mixed.zip: sections out of path order at \(s)") }
+        last = p
+    }
+    if !md.contains("## Skipped") { failures.append("mixed.zip: no Skipped list") }
+    if !md.contains("image.png (unsupported format)") { failures.append("mixed.zip: unsupported entry not listed") }
+    if !md.contains("nested.zip (nested archive") { failures.append("mixed.zip: nested archive not noted") }
+    if md.contains("DS_Store") || md.contains("__MACOSX") || md.contains(".hidden") {
+        failures.append("mixed.zip: junk/hidden entries leaked into output")
+    }
+    if !md.contains("Zipped Report") || !md.contains("| pen | 2 |") {
+        failures.append("mixed.zip: member content missing")
+    }
+    print("sections in order, skipped list present, junk excluded")
+} catch {
+    failures.append("mixed.zip structure: \(error.localizedDescription)")
+}
+
 print("\n=========================")
+
 print(failures.isEmpty ? "ALL CONVERSIONS PASSED" : "FAILURES:\n" + failures.joined(separator: "\n"))
 exit(failures.isEmpty ? 0 : 1)
+

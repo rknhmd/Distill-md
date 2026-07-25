@@ -23,6 +23,7 @@ public nonisolated enum FileType: String, CaseIterable {
     case pptx
     case xlsx
     case legacyDoc   // .doc / .rtf, converted via macOS's textutil
+    case zip
 
     /// Human-readable name shown in the UI.
     public var displayName: String {
@@ -37,6 +38,7 @@ public nonisolated enum FileType: String, CaseIterable {
         case .pptx: "PowerPoint"
         case .xlsx: "Excel"
         case .legacyDoc: "Legacy document"
+        case .zip: "ZIP archive"
         }
     }
 
@@ -51,6 +53,7 @@ public nonisolated enum FileType: String, CaseIterable {
         case .docx: "doc.fill"
         case .pptx: "rectangle.on.rectangle"
         case .legacyDoc: "doc.badge.clock"
+        case .zip: "doc.zipper"
         }
     }
 
@@ -59,7 +62,7 @@ public nonisolated enum FileType: String, CaseIterable {
     /// the panel's enabled-files behavior predictable. The Office types
     /// have no UTType constants; they're looked up by extension.
     public static let importableUTTypes: [UTType] = [
-        .pdf, .plainText, .text, .html, .commaSeparatedText, .tabSeparatedText, .rtf,
+        .pdf, .plainText, .text, .html, .commaSeparatedText, .tabSeparatedText, .rtf, .zip,
     ] + ["docx", "pptx", "xlsx", "doc"].compactMap { UTType(filenameExtension: $0) }
 
     /// Detects the format of a file, or returns `nil` if Distill can't
@@ -77,6 +80,7 @@ public nonisolated enum FileType: String, CaseIterable {
         case "pptx": return .pptx
         case "xlsx": return .xlsx
         case "doc", "rtf": return .legacyDoc
+        case "zip": return .zip
         default: break
         }
 
@@ -89,6 +93,7 @@ public nonisolated enum FileType: String, CaseIterable {
         if type.conforms(to: .tabSeparatedText) { return .tsv }
         if type.conforms(to: .rtf) { return .legacyDoc }
         if type.conforms(to: .plainText) { return .plainText }
+        if type.conforms(to: .zip) { return .zip }
         return nil
     }
 }

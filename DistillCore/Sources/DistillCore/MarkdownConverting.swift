@@ -81,6 +81,9 @@ public nonisolated enum ConversionError: Error, LocalizedError, Equatable {
     case corruptDocument
     case textutilFailed
     case noConvertibleContent
+    case archiveTooLarge(limitMB: Int)
+    case archiveTooManyEntries(limit: Int)
+    case archiveUnsafeEntry(path: String)
     case customOutputFolderNotSet
     case writePermissionDenied(folderName: String)
 
@@ -104,6 +107,12 @@ public nonisolated enum ConversionError: Error, LocalizedError, Equatable {
             "macOS's document converter couldn't process this file"
         case .noConvertibleContent:
             "No convertible content found in the file"
+        case .archiveTooLarge(let limitMB):
+            "The archive expands past the \(limitMB) MB safety limit"
+        case .archiveTooManyEntries(let limit):
+            "The archive has more than \(limit) entries"
+        case .archiveUnsafeEntry(let path):
+            "The archive contains an unsafe path (\(path)) and was rejected"
         case .customOutputFolderNotSet:
             "No output folder chosen — pick one in Settings"
         case .writePermissionDenied(let folderName):

@@ -104,6 +104,7 @@ textutil -convert rtf  -output "$SAMPLES/sample.rtf"  "$BUILD/office-src.html"
 
 # ---------- hand-crafted OOXML fixtures ----------
 python3 "$TOOLS/build-ooxml-fixtures.py" "$SAMPLES"
+python3 "$TOOLS/build-zip-fixtures.py" "$SAMPLES"
 
 # ---------- pptxgenjs real-world deck ----------
 NODE_PATH="$(npm root -g)" node "$TOOLS/make-real-pptx.cjs" "$SAMPLES"
