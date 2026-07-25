@@ -4,6 +4,28 @@ All notable changes to Distill are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] - 2026-07-25
+
+### Added
+- **ZIP archive conversion** — drop a .zip and get one combined
+  Markdown document: every supported file inside is converted under a
+  `# path/inside/zip` section header in stable path order; skipped
+  entries (unsupported formats, nested archives) are listed at the
+  end. Junk (`__MACOSX/`, `.DS_Store`, hidden files) is ignored.
+  Untrusted-input guards: 500 MB / 1,000-entry caps, path-traversal
+  (zip-slip) rejection, no recursion into nested archives. Available
+  in the app, the CLI, and MCP.
+- **Session output override** — the status bar's destination readout
+  is now a control: pick "Next to original files" or a one-off folder
+  for *this session only*. The Settings default is untouched (and wins
+  again on next launch); the status bar shows "— this session" while
+  an override is active, and Settings notes when it's being
+  overridden. Session folder grants are deliberately not persisted.
+
+### Changed
+- Drop-zone and About format lists now include the Office formats and
+  ZIP.
+
 ## [2.0.1] - 2026-07-13
 
 Performance release — supersedes 2.0.0.

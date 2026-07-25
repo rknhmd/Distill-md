@@ -28,6 +28,15 @@ final class AppModel {
     /// Watches the folder chosen in Settings and feeds new files in.
     let watchFolder = WatchFolderService()
 
+    /// Where output goes *this session*, overriding the Settings default.
+    /// Deliberately in-memory only — never touches @AppStorage — so the
+    /// next launch always starts back on the persistent default.
+    enum SessionOutput: Equatable {
+        case alongsideSource
+        case folder(URL)
+    }
+    var sessionOutputOverride: SessionOutput?
+
     init() {
         watchFolder.onNewFiles = { [weak self] urls in
             self?.addFilesAndConvert(urls)
@@ -226,7 +235,12 @@ final class AppModel {
                     ) + markdown
                 }
 
-                let outputURL = try OutputWriter.write(markdown, assets: result.assets, forSource: sourceURL)
+                let outputURL = try OutputWriter.write(
+                    markdown,
+                    assets: result.assets,
+                    forSource: sourceURL,
+                    sessionOverride: sessionOutputOverride
+                )
                 if let i = files.firstIndex(where: { $0.id == id }) {
                     files[i].tokenEstimate = tokens
                     files[i].status = .done(outputURL: outputURL)

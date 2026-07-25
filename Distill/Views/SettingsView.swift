@@ -58,6 +58,15 @@ struct SettingsView: View {
                     }
                 }
 
+                if model.sessionOutputOverride != nil {
+                    Label(
+                        "A session override is active (see the status bar). This default applies after Reset to default, or on next launch.",
+                        systemImage: "info.circle"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                }
+
                 Toggle("Include metadata header", isOn: $includeFrontMatter)
                 Text("Prepends YAML front matter (source, date, format, pages, tokens) to converted files. Markdown inputs that already have front matter keep their own.")
                     .font(.caption)

@@ -17,7 +17,7 @@
 import Foundation
 import DistillCore
 
-let toolVersion = "2.0.1"
+let toolVersion = "2.1.0"
 
 // MARK: - Output helpers
 

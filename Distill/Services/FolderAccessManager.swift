@@ -121,6 +121,26 @@ final class FolderAccessManager {
                            bookmarkKey: AppSettings.watchFolderBookmarkKey)
     }
 
+    // MARK: - Session-only output folder (status bar override)
+
+    /// Folder picker for the status bar's "Choose folder for this
+    /// session…". The grant is deliberately NOT persisted: no bookmark
+    /// is written; the panel's security scope is held in memory and
+    /// dies with the app, matching the override's session-only nature.
+    func chooseSessionFolder() -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Use for This Session"
+        panel.message = "Converted Markdown will be saved here until you change it, reset it, or quit Distill."
+
+        guard panel.runModal() == .OK, let chosen = panel.url else { return nil }
+        startAccessing(chosen)   // session cache only — no storeBookmark
+        return chosen.standardizedFileURL
+    }
+
     /// Shared resolution for folders stored under their own defaults keys
     /// (custom output folder, watch folder).
     private func dedicatedFolderURL(pathKey: String, bookmarkKey: String) -> URL? {

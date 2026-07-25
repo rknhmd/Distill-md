@@ -132,7 +132,7 @@ struct ContentView: View {
         ContentUnavailableView {
             Label("Drop Files Here", systemImage: "arrow.down.doc")
         } description: {
-            Text("PDF · Word · PowerPoint · Excel · CSV · HTML & more")
+            Text("PDF · Word · PowerPoint · Excel · CSV · HTML · ZIP & more")
         } actions: {
             Button("Add Files…") { isImporterPresented = true }
         }
@@ -160,13 +160,10 @@ struct ContentView: View {
 
     private var statusBar: some View {
         HStack(spacing: 8) {
-            Image(systemName: "folder")
-                .foregroundStyle(.secondary)
-            Text(outputDescription)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
+            // The destination readout is a control: click to override the
+            // output location for this session only (Settings keeps the
+            // persistent default; next launch returns to it).
+            outputLocationMenu
 
             if model.watchFolder.isWatching, let name = model.watchFolder.watchedFolderName {
                 Label("Watching “\(name)”", systemImage: "binoculars")
@@ -201,14 +198,63 @@ struct ContentView: View {
         .overlay(alignment: .top) { Divider() }
     }
 
-    private var outputDescription: String {
+    /// Effective destination, derived from the reactive @AppStorage
+    /// defaults plus the observable session override — so both Settings
+    /// changes and override changes refresh the status bar.
+    private var effectiveOutput: (text: String, isOverride: Bool) {
+        if let override = model.sessionOutputOverride {
+            switch override {
+            case .alongsideSource:
+                return ("Saving next to the original files — this session", true)
+            case .folder(let url):
+                return ("Saving to \((url.path as NSString).abbreviatingWithTildeInPath) — this session", true)
+            }
+        }
         if outputModeRaw == AppSettings.OutputMode.customFolder.rawValue {
             if customFolderPath.isEmpty {
-                return "No output folder chosen — pick one in Settings (⌘,)"
+                return ("No output folder chosen — pick one in Settings (⌘,)", false)
             }
-            return "Saving to \((customFolderPath as NSString).abbreviatingWithTildeInPath)"
+            return ("Saving to \((customFolderPath as NSString).abbreviatingWithTildeInPath)", false)
         }
-        return "Saving next to the original files"
+        return ("Saving next to the original files", false)
+    }
+
+    private var outputLocationMenu: some View {
+        let effective = effectiveOutput
+        return Menu {
+            Button("Next to original files") {
+                // Picking the value that equals the default just means
+                // "use the default" — no phantom override.
+                if outputModeRaw == AppSettings.OutputMode.alongsideSource.rawValue {
+                    model.sessionOutputOverride = nil
+                } else {
+                    model.sessionOutputOverride = .alongsideSource
+                }
+            }
+            Button("Choose folder for this session…") {
+                if let url = FolderAccessManager.shared.chooseSessionFolder() {
+                    model.sessionOutputOverride = .folder(url)
+                }
+            }
+            if model.sessionOutputOverride != nil {
+                Divider()
+                Button("Reset to default") {
+                    model.sessionOutputOverride = nil
+                }
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: effective.isOverride ? "folder.badge.gearshape" : "folder")
+                Text(effective.text)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .font(.callout)
+            .foregroundStyle(effective.isOverride ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help("Where converted Markdown is saved. Click to override for this session; the default lives in Settings (⌘,).")
     }
 
     private var queueSummary: String {

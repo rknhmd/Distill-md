@@ -32,7 +32,7 @@ struct AboutView: View {
             Text("Made by Rakan Hamadeh")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text("PDF · Word · PowerPoint · Excel · HTML · CSV — fully on-device")
+            Text("PDF · Word · PowerPoint · Excel · HTML · CSV · ZIP — fully on-device")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
