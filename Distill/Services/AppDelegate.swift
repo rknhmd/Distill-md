@@ -3,7 +3,7 @@
 //  Distill
 //
 //  SwiftUI apps still need a small NSApplicationDelegate for one thing
-//  we use: receiving files opened from Finder ("Open With → Distill",
+//  we use: receiving files opened from Finder ("Open With → Distill.md",
 //  or the Quick Action extension handing files over). Launch Services
 //  attaches sandbox read access to files delivered this way, same as
 //  drag-and-drop.

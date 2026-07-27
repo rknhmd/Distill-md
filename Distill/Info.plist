@@ -7,7 +7,7 @@
 	     build settings live here.
 
 	     Declaring document types (role: Viewer, rank: Alternate — we don't
-	     steal double-click ownership) is what makes "Open With → Distill"
+	     steal double-click ownership) is what makes "Open With → Distill.md"
 	     appear in Finder, and it's how the Quick Action extension hands
 	     files to the app with sandbox access attached. -->
 	<!-- A classic macOS Service: right-click selected files → "Convert

@@ -108,7 +108,7 @@ struct SettingsView: View {
                             }
                         }
                     }
-                    Text("Runs while Distill is open. Markdown files in the folder are skipped, so converted output doesn't re-convert.")
+                    Text("Runs while Distill.md is open. Markdown files in the folder are skipped, so converted output doesn't re-convert.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

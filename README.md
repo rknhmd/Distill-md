@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="Distill/Assets.xcassets/AppIcon.appiconset/icon_256x256@1x.png" width="128" alt="Distill icon">
+  <img src="Distill/Assets.xcassets/AppIcon.appiconset/icon_256x256@1x.png" width="128" alt="Distill.md icon">
 </p>
 
-<h1 align="center">Distill</h1>
+<h1 align="center">Distill.md</h1>
 
 <p align="center"><b>Native document infrastructure for AI workflows.</b></p>
 
@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT">
 </p>
 
-Distill converts documents into clean, token-efficient Markdown for AI
+Distill.md converts documents into clean, token-efficient Markdown for AI
 consumption — and exposes that ability to everything on your Mac: a
 drag-and-drop app, a Finder Quick Action, a watch folder, a `distill`
 CLI, and an **MCP server** that lets Claude Desktop and Claude Code
@@ -86,7 +86,7 @@ HTML anywhere, get Markdown back.
 
 ## Which build do I want?
 
-Distill ships as two builds from one codebase:
+Distill.md ships as two builds from one codebase:
 
 | | **Direct** (this repo's releases) | **Mac App Store** |
 | --- | --- | --- |

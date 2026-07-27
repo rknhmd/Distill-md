@@ -103,7 +103,7 @@ private nonisolated let distillTools: [Tool] = [
     ),
     Tool(
         name: "list_supported_formats",
-        description: "List the document formats Distill can convert to Markdown.",
+        description: "List the document formats Distill.md can convert to Markdown.",
         inputSchema: .object([
             "type": .string("object"),
             "properties": .object([:]),

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Distill is a fully native macOS SwiftUI app that converts documents (PDF, DOCX, PPTX, XLSX, CSV, HTML, TXT, …) into clean Markdown for feeding to AI models. See `distill-project-brief.md` for the full roadmap (Phases 1–5), conversion-engine plan, and hard constraints. The developer is a second-year computer engineering student new to Swift: prefer clear, idiomatic, well-commented code, and briefly explain architectural choices.
+Distill.md (product name; `PRODUCT_NAME` and all build settings stay period-free as `Distill`) is a fully native macOS SwiftUI app that converts documents (PDF, DOCX, PPTX, XLSX, CSV, HTML, TXT, …) into clean Markdown for feeding to AI models. See `distill-project-brief.md` for the full roadmap (Phases 1–5), conversion-engine plan, and hard constraints. The developer is a second-year computer engineering student new to Swift: prefer clear, idiomatic, well-commented code, and briefly explain architectural choices.
 
 ## Hard constraints (from the brief)
 

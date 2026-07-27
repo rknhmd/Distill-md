@@ -58,7 +58,7 @@ final class FolderAccessManager {
         panel.allowsMultipleSelection = false
         panel.directoryURL = folder
         panel.prompt = "Grant Access"
-        panel.message = "Distill needs your permission to save Markdown files in “\(folder.lastPathComponent)”."
+        panel.message = "Distill.md needs your permission to save Markdown files in “\(folder.lastPathComponent)”."
 
         guard panel.runModal() == .OK, let chosen = panel.url else { return nil }
 
@@ -108,7 +108,7 @@ final class FolderAccessManager {
         panel.canCreateDirectories = true
         panel.allowsMultipleSelection = false
         panel.prompt = "Watch"
-        panel.message = "Files added to this folder will be converted to Markdown automatically while Distill is running."
+        panel.message = "Files added to this folder will be converted to Markdown automatically while Distill.md is running."
 
         guard panel.runModal() == .OK, let chosen = panel.url else { return nil }
         storeBookmark(for: chosen, key: AppSettings.watchFolderBookmarkKey)
@@ -134,7 +134,7 @@ final class FolderAccessManager {
         panel.canCreateDirectories = true
         panel.allowsMultipleSelection = false
         panel.prompt = "Use for This Session"
-        panel.message = "Converted Markdown will be saved here until you change it, reset it, or quit Distill."
+        panel.message = "Converted Markdown will be saved here until you change it, reset it, or quit Distill.md."
 
         guard panel.runModal() == .OK, let chosen = panel.url else { return nil }
         startAccessing(chosen)   // session cache only — no storeBookmark

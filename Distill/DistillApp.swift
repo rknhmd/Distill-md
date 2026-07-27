@@ -34,7 +34,7 @@ struct DistillApp: App {
         .commands {
             // Our own About window instead of the system one.
             CommandGroup(replacing: .appInfo) {
-                Button("About Distill") { openWindow(id: "about") }
+                Button("About Distill.md") { openWindow(id: "about") }
             }
             // File menu: ⌘N makes no sense here; ⌘O adds files.
             CommandGroup(replacing: .newItem) {
@@ -53,7 +53,7 @@ struct DistillApp: App {
             }
         }
 
-        Window("About Distill", id: "about") {
+        Window("About Distill.md", id: "about") {
             AboutView()
         }
         .windowResizability(.contentSize)

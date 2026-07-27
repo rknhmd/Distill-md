@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Distill are documented here. The format follows
+All notable changes to Distill.md are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
@@ -22,6 +22,11 @@ All notable changes to Distill are documented here. The format follows
   build, or missing from a Direct one.
 
 ### Changed
+- **Renamed to Distill.md.** Display name only: Finder, the Dock, the
+  menu bar, the window title, and the About window now read "Distill.md".
+  The bundle identifier, the `Distill` product/build-setting name, the
+  `distill` command, and the `distill` MCP server key are all unchanged,
+  so existing settings, folder grants, and client configs keep working.
 - Version numbers now come from a single `Config/Version.xcconfig`, so
   the two builds can't drift.
 - Entitlements are explicit files per build rather than settings-derived.
@@ -99,7 +104,7 @@ sequence (PreviewFirstPaint signposts, Instruments): first content in
 
 ## [2.0.0] - 2026-07-08
 
-The integration release: Distill becomes usable by other tools, not
+The integration release: Distill.md becomes usable by other tools, not
 just humans.
 
 ### Added
@@ -188,7 +193,7 @@ First release.
 
 **System integration**
 - Finder Quick Action: right-click files → "Convert to md".
-- "Open With → Distill" for all supported formats.
+- "Open With → Distill.md" for all supported formats.
 - Watch folder: files added to a chosen folder convert automatically
-  while Distill runs (Markdown files skipped to prevent loops).
+  while Distill.md runs (Markdown files skipped to prevent loops).
 - File menu with Add Files… (⌘O) and Convert All (⌘⏎); custom About window.

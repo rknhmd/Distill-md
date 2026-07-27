@@ -15,7 +15,7 @@ struct AboutView: View {
                 .resizable()
                 .frame(width: 96, height: 96)
 
-            Text("Distill")
+            Text("Distill.md")
                 .font(.title.bold())
 
             Text("Version \(Self.version)")

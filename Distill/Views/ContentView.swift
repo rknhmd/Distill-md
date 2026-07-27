@@ -43,7 +43,7 @@ struct ContentView: View {
         } detail: {
             PreviewPane(file: model.selectedFile)
         }
-        .navigationTitle("Distill")
+        .navigationTitle("Distill.md")
         // Dropping works anywhere in the window, not just the sidebar.
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
             handleDrop(providers)
