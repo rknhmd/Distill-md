@@ -84,6 +84,25 @@ pages, tokens), duplicate-safe naming, image extraction into
 Also in the app: **⌘⇧V converts the clipboard** — copy rich text or
 HTML anywhere, get Markdown back.
 
+## Which build do I want?
+
+Distill ships as two builds from one codebase:
+
+| | **Direct** (this repo's releases) | **Mac App Store** |
+| --- | --- | --- |
+| App, Finder Quick Action, watch folder | ✅ | ✅ |
+| `distill` command-line tool | ✅ | — |
+| MCP server for Claude Desktop / Code | ✅ | — |
+| Install | download + right-click Open | one click, auto-updates |
+
+**Want the CLI or the MCP server? Take the Direct build.** App Store apps
+must run in the App Sandbox, and a helper binary inside a sandboxed
+bundle inherits that sandbox — launched by Claude Desktop or a terminal
+it gets an empty container and can't read the files you name. Symlinking
+into `/usr/local/bin` isn't permitted there either. Rather than ship a
+version of those features that quietly fails, the App Store build leaves
+them out. Conversion quality is identical in both.
+
 ## Install
 
 1. Download the zip from the latest [GitHub Release](../../releases),

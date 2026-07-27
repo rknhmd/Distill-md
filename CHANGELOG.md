@@ -4,6 +4,32 @@ All notable changes to Distill are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Two builds from one codebase.** A `Release-MAS` configuration and
+  `Distill-MAS` scheme produce a sandbox-clean variant for the Mac App
+  Store: GUI, Finder Quick Action, and watch folder, with the `distill`
+  CLI/MCP helper excluded (a helper inside a sandboxed bundle can't read
+  the files it's asked to convert). The Direct build is unchanged and
+  remains the only one with CLI and MCP. Distinct bundle identifiers
+  (`com.rakan.Distill` / `com.rakan.Distill.mas`) let both be installed
+  side by side without sharing settings.
+- `PrivacyInfo.xcprivacy` in both builds: no data collected, no
+  tracking, and the two required-reason APIs actually used — file
+  timestamps (C617.1) and user defaults (CA92.1).
+- A build phase that fails the build if the helper is embedded in a MAS
+  build, or missing from a Direct one.
+
+### Changed
+- Version numbers now come from a single `Config/Version.xcconfig`, so
+  the two builds can't drift.
+- Entitlements are explicit files per build rather than settings-derived.
+
+### Fixed
+- The app's `Info.plist` is no longer copied into the bundle's Resources
+  (a long-standing build warning).
+
 ## [2.1.0] - 2026-07-25
 
 ### Added

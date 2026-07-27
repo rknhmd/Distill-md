@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Distill collects nothing and contacts no network. The two
+	     required-reason APIs below are the only ones the audit found:
+
+	     File timestamps — WatchFolderService reads
+	       .contentModificationDateKey to tell a finished copy from a file
+	       still being written, on files in a folder the user chose.
+	       Reason C617.1: files provided to the app by the user.
+
+	     User defaults — @AppStorage for output mode, toggles, and the
+	       security-scoped bookmarks of folders the user granted.
+	       Reason CA92.1: access to information from the same app only.
+
+	     Deliberately NOT declared: disk space (no volume-capacity API is
+	     used — the app reads per-file sizes, which is not a
+	     required-reason API), active keyboard, and system boot time. -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -27,6 +27,42 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -scheme Dist
 
 There are no test targets yet. The developer also builds/runs in Xcode (⌘R) to verify UI.
 
+### Two builds from one codebase
+
+| | Direct (daily driver) | Mac App Store |
+| --- | --- | --- |
+| Scheme / configuration | `Distill` / `Release` | `Distill-MAS` / `Release-MAS` |
+| Bundle ID | `com.rakan.Distill` | `com.rakan.Distill.mas` |
+| `distill` CLI + MCP helper | embedded in `Contents/Helpers` | **excluded** |
+| Entitlements | `Config/Distill.entitlements` | `Config/Distill-MAS.entitlements` |
+| Hardened runtime | off | on |
+| `#if MAS` | inactive | active (`SWIFT_ACTIVE_COMPILATION_CONDITIONS`) |
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -scheme Distill     -configuration Release     build
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -scheme Distill-MAS -configuration Release-MAS build
+```
+
+Things that will bite if you don't know them:
+
+- **`Config/Version.xcconfig` is the only place version numbers live.** It's the
+  `baseConfigurationReference` of the project-level configurations; no target
+  sets `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION`. Bump releases there so the
+  two builds can't drift (the App Store requires `CFBundleVersion` to increase).
+- **The "Verify helper packaging" script phase fails the build in both
+  directions** — MAS aborts if `Contents/Helpers` survives, Direct aborts if the
+  helper is missing. A stray helper in an App Store submission is a rejection,
+  so don't "fix" a failure by deleting the check.
+- **`ENABLE_USER_SCRIPT_SANDBOXING = NO` on the app target is deliberate.** That
+  guard phase deletes a file the Embed CLI phase just produced; declaring it as
+  a script output instead makes two commands claim the same path
+  ("Multiple commands produce…"). The phase only ever touches its own build
+  product.
+- **Both schemes are shared and committed.** Adding the first shared scheme
+  stops Xcode autocreating the rest, which is why `Distill.xcscheme` exists too.
+- DistillCore must not diverge between builds: no `#if MAS` in converter logic.
+  The flag governs packaging and UI only.
+
 ## Project configuration
 
 - Two targets: `Distill` (app) and `DistillQuickAction` (Finder Quick Action .appex under `QuickAction/`, embedded in the app; it hands selected files to the app via `NSWorkspace.open(_:withApplicationAt:)`, which transfers sandbox grants). Building the `Distill` scheme builds both.

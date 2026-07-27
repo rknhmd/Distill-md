@@ -1,0 +1,9 @@
+// Version.xcconfig — the single source of truth for both builds.
+//
+// The App Store requires CFBundleVersion to increase monotonically, and
+// the Direct and MAS builds must never disagree about what version they
+// are. Every target inherits these through the project-level build
+// configurations, so bumping a release means editing exactly one file.
+
+MARKETING_VERSION = 2.1.0
+CURRENT_PROJECT_VERSION = 5
