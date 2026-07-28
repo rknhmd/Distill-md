@@ -44,6 +44,14 @@ func runMCPServer() async -> Int32 {
     }
 }
 
+/// The SDK deprecated its `.text("…")` convenience in favour of the full
+/// enum case with annotation and metadata slots. Neither is meaningful
+/// for these tools, so one wrapper keeps the call sites readable and
+/// confines any future signature change to a single line.
+private nonisolated func textContent(_ body: String) -> Tool.Content {
+    .text(text: body, annotations: nil, _meta: nil)
+}
+
 // MARK: - Tool definitions
 
 private nonisolated let distillTools: [Tool] = [
@@ -117,19 +125,19 @@ private nonisolated func handleToolCall(_ params: CallTool.Parameters) async -> 
     switch params.name {
     case "convert_to_markdown":
         guard let path = params.arguments?["path"]?.stringValue else {
-            return .init(content: [.text("Missing required argument: path")], isError: true)
+            return .init(content: [textContent("Missing required argument: path")], isError: true)
         }
         let wantsFrontMatter = params.arguments?["front_matter"]?.boolValue ?? false
         do {
             let (markdown, _, _) = try await convertDocument(path: path, frontMatter: wantsFrontMatter)
-            return .init(content: [.text(markdown)], isError: false)
+            return .init(content: [textContent(markdown)], isError: false)
         } catch {
-            return .init(content: [.text(errorText(error, path: path))], isError: true)
+            return .init(content: [textContent(errorText(error, path: path))], isError: true)
         }
 
     case "convert_file":
         guard let path = params.arguments?["path"]?.stringValue else {
-            return .init(content: [.text("Missing required argument: path")], isError: true)
+            return .init(content: [textContent("Missing required argument: path")], isError: true)
         }
         let wantsFrontMatter = params.arguments?["front_matter"]?.boolValue ?? false
         let wantsImages = params.arguments?["extract_images"]?.boolValue ?? false
@@ -149,17 +157,17 @@ private nonisolated func handleToolCall(_ params: CallTool.Parameters) async -> 
                 markdown: markdown, assets: conversionResult.assets, besideMarkdownAt: destination
             )
             try Data(finalMarkdown.utf8).write(to: destination, options: .atomic)
-            return .init(content: [.text(destination.path)], isError: false)
+            return .init(content: [textContent(destination.path)], isError: false)
         } catch {
-            return .init(content: [.text(errorText(error, path: path))], isError: true)
+            return .init(content: [textContent(errorText(error, path: path))], isError: true)
         }
 
     case "list_supported_formats":
         let formats = FileType.allCases.map(\.displayName).joined(separator: ", ")
-        return .init(content: [.text(formats)], isError: false)
+        return .init(content: [textContent(formats)], isError: false)
 
     default:
-        return .init(content: [.text("Unknown tool: \(params.name)")], isError: true)
+        return .init(content: [textContent("Unknown tool: \(params.name)")], isError: true)
     }
 }
 
