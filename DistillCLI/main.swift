@@ -17,7 +17,11 @@
 import Foundation
 import DistillCore
 
-let toolVersion = "2.1.0"
+/// Read from the Info.plist embedded in this binary
+/// (CREATE_INFOPLIST_SECTION_IN_BINARY), which inherits MARKETING_VERSION
+/// from Config/Version.xcconfig — so the CLI, the MCP server, and the app
+/// can never report different versions.
+let toolVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
 
 // MARK: - Output helpers
 

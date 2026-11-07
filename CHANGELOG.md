@@ -4,36 +4,34 @@ All notable changes to Distill.md are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [2.1.1] - 2026-11-07
+
+Polish release: the product is now named Distill.md, clean builds are
+warning-free, and every version number comes from one place.
 
 ### Added
-- **Two builds from one codebase.** A `Release-MAS` configuration and
-  `Distill-MAS` scheme produce a sandbox-clean variant for the Mac App
-  Store: GUI, Finder Quick Action, and watch folder, with the `distill`
-  CLI/MCP helper excluded (a helper inside a sandboxed bundle can't read
-  the files it's asked to convert). The Direct build is unchanged and
-  remains the only one with CLI and MCP. Distinct bundle identifiers
-  (`com.rakan.Distill` / `com.rakan.Distill.mas`) let both be installed
-  side by side without sharing settings.
-- `PrivacyInfo.xcprivacy` in both builds: no data collected, no
-  tracking, and the two required-reason APIs actually used — file
-  timestamps (C617.1) and user defaults (CA92.1).
-- A build phase that fails the build if the helper is embedded in a MAS
-  build, or missing from a Direct one.
+- `PrivacyInfo.xcprivacy`, declaring no data collection, no tracking,
+  and the two required-reason APIs actually used — file timestamps
+  (C617.1) and user defaults (CA92.1).
 
 ### Changed
-- **Renamed to Distill.md.** Display name only: Finder, the Dock, the
-  menu bar, the window title, and the About window now read "Distill.md".
-  The bundle identifier, the `Distill` product/build-setting name, the
-  `distill` command, and the `distill` MCP server key are all unchanged,
-  so existing settings, folder grants, and client configs keep working.
-- Version numbers now come from a single `Config/Version.xcconfig`, so
-  the two builds can't drift.
-- Entitlements are explicit files per build rather than settings-derived.
+- **Renamed to Distill.md.** Display name only: Finder's Open With, the
+  Dock, the menu bar, the window title, and the About window now read
+  "Distill.md". The bundle identifier, the `distill` command, and the
+  `distill` MCP server key are unchanged, so existing settings, folder
+  grants, and client configs keep working.
+- **One version number for everything.** `Config/Version.xcconfig` now
+  feeds the app, `distill --version`, and the MCP server's reported
+  version. Previously the CLI hard-coded its own and could drift.
+- Entitlements are explicit files rather than derived from build
+  settings (the entitlements themselves are unchanged).
 
 ### Fixed
-- The app's `Info.plist` is no longer copied into the bundle's Resources
-  (a long-standing build warning).
+- Clean builds are warning-free. Concurrency annotations in the Finder
+  Quick Action now match how it actually runs (off the main thread), and
+  the MCP server no longer uses the SDK's deprecated `.text(_:)` factory.
+  No behavior change in either.
+- The app's `Info.plist` is no longer copied into the bundle's Resources.
 
 ## [2.1.0] - 2026-07-25
 

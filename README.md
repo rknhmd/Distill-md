@@ -19,9 +19,9 @@ drag-and-drop app, a Finder Quick Action, a watch folder, a `distill`
 CLI, and an **MCP server** that lets Claude Desktop and Claude Code
 convert files themselves.
 
-It is a fully native Swift app — under 15 MB with the MCP server
-included, versus the hundreds of MB a Python or Electron equivalent
-drags in. No interpreter, no cloud: every conversion happens
+It is a fully native Swift app — an ~8 MB download (about 30 MB
+installed, most of it the bundled CLI/MCP helper), versus the hundreds
+of MB a Python or Electron equivalent drags in. No interpreter, no cloud: every conversion happens
 on-device, OCR included.
 
 ## The three ways in
@@ -84,33 +84,31 @@ pages, tokens), duplicate-safe naming, image extraction into
 Also in the app: **⌘⇧V converts the clipboard** — copy rich text or
 HTML anywhere, get Markdown back.
 
-## Which build do I want?
-
-Distill.md ships as two builds from one codebase:
-
-| | **Direct** (this repo's releases) | **Mac App Store** |
-| --- | --- | --- |
-| App, Finder Quick Action, watch folder | ✅ | ✅ |
-| `distill` command-line tool | ✅ | — |
-| MCP server for Claude Desktop / Code | ✅ | — |
-| Install | download + right-click Open | one click, auto-updates |
-
-**Want the CLI or the MCP server? Take the Direct build.** App Store apps
-must run in the App Sandbox, and a helper binary inside a sandboxed
-bundle inherits that sandbox — launched by Claude Desktop or a terminal
-it gets an empty container and can't read the files you name. Symlinking
-into `/usr/local/bin` isn't permitted there either. Rather than ship a
-version of those features that quietly fails, the App Store build leaves
-them out. Conversion quality is identical in both.
-
 ## Install
 
-1. Download the zip from the latest [GitHub Release](../../releases),
-   unzip, move `Distill.app` to `/Applications`.
-2. First launch of a downloaded copy: right-click → **Open** → **Open**
-   (the app is not yet notarized).
-3. Optional: `distill install-cli` for the terminal, and the MCP config
-   above for Claude.
+1. Download `Distill.md-<version>.zip` from the
+   [latest release](../../releases/latest), unzip it, and move
+   `Distill.app` to `/Applications`.
+2. The app isn't notarized yet, so macOS blocks it on first launch.
+   Clear the download quarantine once — this also unblocks the `distill`
+   CLI and MCP server bundled inside the app:
+
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/Distill.app
+   ```
+
+   (Alternatively, launch it and approve it under **System Settings →
+   Privacy & Security → Open Anyway**. That covers the app itself; the
+   command above also covers the bundled helper.)
+3. Optional — put the CLI on your PATH:
+
+   ```sh
+   /Applications/Distill.app/Contents/Helpers/distill install-cli
+   ```
+
+   If `/usr/local/bin` isn't writable, it prints the one-line `sudo`
+   command to run instead.
+4. Optional — add the MCP config above to Claude Desktop or Claude Code.
 
 ## Build from source
 

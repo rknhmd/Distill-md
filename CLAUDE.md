@@ -27,48 +27,54 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -scheme Dist
 
 There are no test targets yet. The developer also builds/runs in Xcode (⌘R) to verify UI.
 
-### Two builds from one codebase
-
-| | Direct (daily driver) | Mac App Store |
-| --- | --- | --- |
-| Scheme / configuration | `Distill` / `Release` | `Distill-MAS` / `Release-MAS` |
-| Bundle ID | `com.rakan.Distill` | `com.rakan.Distill.mas` |
-| `distill` CLI + MCP helper | embedded in `Contents/Helpers` | **excluded** |
-| Entitlements | `Config/Distill.entitlements` | `Config/Distill-MAS.entitlements` |
-| Hardened runtime | off | on |
-| `#if MAS` | inactive | active (`SWIFT_ACTIVE_COMPILATION_CONDITIONS`) |
-
 ```sh
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -scheme Distill     -configuration Release     build
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -scheme Distill-MAS -configuration Release-MAS build
+# Release build. Use `clean build` before a release: incremental builds
+# don't recompile untouched files, so they hide warnings.
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -scheme Distill -configuration Release clean build
 ```
 
-Things that will bite if you don't know them:
+### Versioning
 
-- **`Config/Version.xcconfig` is the only place version numbers live.** It's the
-  `baseConfigurationReference` of the project-level configurations; no target
-  sets `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION`. Bump releases there so the
-  two builds can't drift (the App Store requires `CFBundleVersion` to increase).
-- **The "Verify helper packaging" script phase fails the build in both
-  directions** — MAS aborts if `Contents/Helpers` survives, Direct aborts if the
-  helper is missing. A stray helper in an App Store submission is a rejection,
-  so don't "fix" a failure by deleting the check.
-- **`ENABLE_USER_SCRIPT_SANDBOXING = NO` on the app target is deliberate.** That
-  guard phase deletes a file the Embed CLI phase just produced; declaring it as
-  a script output instead makes two commands claim the same path
-  ("Multiple commands produce…"). The phase only ever touches its own build
-  product.
-- **Both schemes are shared and committed.** Adding the first shared scheme
-  stops Xcode autocreating the rest, which is why `Distill.xcscheme` exists too.
-- DistillCore must not diverge between builds: no `#if MAS` in converter logic.
-  The flag governs packaging and UI only.
+`Config/Version.xcconfig` is the only place version numbers live. It's the
+`baseConfigurationReference` of the project-level configurations, so the app
+inherits `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION`, and the `distill` CLI
+reads them back from the Info.plist embedded in its binary
+(`CREATE_INFOPLIST_SECTION_IN_BINARY`) — so `distill --version` and the MCP
+`serverInfo` can't drift from the app. Bump releases there and nowhere else.
+
+### Releasing
+
+1. Bump `Config/Version.xcconfig`; close the CHANGELOG section.
+2. Clean Release build (above); confirm zero warnings and a green harness.
+3. `ditto -c -k --keepParent <DerivedData>/Build/Products/Release/Distill.app dist/Distill.md-<version>.zip`
+4. Tag `v<version>`, push, then `gh release create` with the zip attached.
+
+The repo is `rknhmd/Distill-md`, but git and `gh` on this machine default to
+the `rakanhmd` account, which can't push there. Push with the owner's
+credential — resetting the helper list first, since `-c credential.helper=…`
+otherwise *appends* to the keychain helper and loses to it:
+
+```sh
+git -c credential.helper= -c credential.helper='!f(){ echo username=rknhmd; echo "password=$(gh auth token -u rknhmd)"; };f' push
+GH_TOKEN=$(gh auth token -u rknhmd) gh release create …
+```
+
+### Mac App Store build: parked
+
+A sandbox-clean MAS variant (`Release-MAS` configuration, `Distill-MAS` scheme,
+`com.rakan.Distill.mas`, CLI/MCP helper excluded, packaging guard phase) was
+built and verified in commit `9f590e2`, then removed when the App Store was
+shelved. The GitHub build — app, Quick Action, watch folder, CLI, and MCP — is
+the only product. To revive MAS, start from that commit. The constraint it
+encodes: a helper inside a sandboxed bundle inherits the sandbox, so the CLI and
+MCP server can't ship in a MAS build in their current form.
 
 ## Project configuration
 
 - Two targets: `Distill` (app) and `DistillQuickAction` (Finder Quick Action .appex under `QuickAction/`, embedded in the app; it hands selected files to the app via `NSWorkspace.open(_:withApplicationAt:)`, which transfers sandbox grants). Building the `Distill` scheme builds both.
 - Bundle IDs `com.rakan.Distill` / `com.rakan.Distill.QuickAction`.
 - The app has a partial `Distill/Info.plist` (document types) merged into the generated Info.plist via `INFOPLIST_FILE` + `GENERATE_INFOPLIST_FILE = YES`; the extension does the same for its `NSExtension` dict.
-- **App Sandbox is enabled** via build settings (no .entitlements file; Info.plist is generated — `GENERATE_INFOPLIST_FILE = YES`). Sandbox-related capabilities are edited in `project.pbxproj` build settings, e.g. `ENABLE_USER_SELECTED_FILES`.
+- **App Sandbox is enabled.** Entitlements live in `Config/Distill.entitlements` and `Config/QuickAction.entitlements` (wired via `CODE_SIGN_ENTITLEMENTS`, mirroring the `ENABLE_APP_SANDBOX` / `ENABLE_USER_SELECTED_FILES` build settings). Info.plist is generated (`GENERATE_INFOPLIST_FILE = YES`). The bundled `distill` helper is deliberately unsandboxed: it's launched directly by users and MCP clients with arbitrary paths.
 - Sandbox implications that shape the architecture:
   - Drag-and-drop grants access to the dropped files themselves.
   - Writing converted .md files requires `ENABLE_USER_SELECTED_FILES = readwrite` (project was created readonly) and, for "alongside source" output or remembered custom folders, security-scoped bookmarks / explicit folder selection via NSOpenPanel.

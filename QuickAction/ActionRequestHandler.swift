@@ -43,11 +43,12 @@ nonisolated final class ActionRequestHandler: NSObject, NSExtensionRequestHandli
 
         for provider in providers {
             group.enter()
+            let typeIDs = provider.registeredTypeIdentifiers   // [String] is Sendable
             loadFileURL(from: provider) { url in
                 if let url {
                     collected.append(url)
                 } else {
-                    logger.error("provider yielded no URL (types: \(provider.registeredTypeIdentifiers))")
+                    logger.error("provider yielded no URL (types: \(typeIDs))")
                 }
                 group.leave()
             }
@@ -92,7 +93,10 @@ nonisolated final class ActionRequestHandler: NSObject, NSExtensionRequestHandli
     }
 }
 
-extension ActionRequestHandler {
+// `nonisolated` again: extensions don't inherit it from the class, and
+// under this project's default MainActor isolation this method would
+// otherwise be main-actor code called from an off-main `beginRequest`.
+nonisolated extension ActionRequestHandler {
 
     /// Gets the on-disk URL out of a Finder-provided attachment, trying
     /// the ways Finder actually delivers them:
@@ -121,6 +125,10 @@ extension ActionRequestHandler {
             return
         }
 
+        // NSItemProvider isn't annotated Sendable, but its load methods are
+        // designed to be called from these completion handlers (which
+        // arrive on arbitrary queues) — so the capture is safe in practice.
+        nonisolated(unsafe) let provider = provider
         provider.loadItem(forTypeIdentifier: typeIdentifier, options: nil) { item, _ in
             if let url = decode(item), url.isFileURL {
                 completion(url)
@@ -142,7 +150,7 @@ extension ActionRequestHandler {
 
 /// Tiny thread-safe accumulator — provider callbacks arrive on
 /// arbitrary queues.
-private final class URLCollector: @unchecked Sendable {
+private nonisolated final class URLCollector: @unchecked Sendable {
     private var urls: [URL] = []
     private let lock = NSLock()
 
