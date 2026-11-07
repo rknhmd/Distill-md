@@ -86,6 +86,8 @@ HTML anywhere, get Markdown back.
 
 ## Install
 
+Requires **macOS 26.5 or later** — universal build for Apple Silicon and Intel.
+
 1. Download `Distill.md-<version>.zip` from the
    [latest release](../../releases/latest), unzip it, and move
    `Distill.app` to `/Applications`.
